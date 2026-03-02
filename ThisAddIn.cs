@@ -11,7 +11,7 @@ namespace jimsoutlooktools
         private CommandBarButton _downloadButton;
         private CommandBar _toolbar;
         private const string ToolbarName = "jimsoutlooktools";
-        private const string Version = "v1.0.1";
+        private const string AppVersion = "v1.0.1";
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
@@ -61,7 +61,6 @@ namespace jimsoutlooktools
                     true);
 
                 _downloadButton.Caption = "保存附件";
-                _downloadButton.ToolTipText = $"jimsoutlooktools {Version} - 将收件箱邮件附件按年月保存到本地文件夹";
                 _downloadButton.Style = MsoButtonStyle.msoButtonCaption;
                 _downloadButton.Click += new _CommandBarButtonEvents_ClickEventHandler(DownloadButton_Click);
 
@@ -92,7 +91,7 @@ namespace jimsoutlooktools
                     int savedCount = 0;
                     int skippedCount = 0;
 
-                    using (var progressForm = new ProgressForm())
+                    using (var progressForm = new ProgressForm(AppVersion))
                     {
                         progressForm.Show();
                         progressForm.SetProgress(0, items.Count);
@@ -141,11 +140,11 @@ namespace jimsoutlooktools
                         }
                     }
 
-                    MessageBox.Show($"保存完成！已保存 {savedCount} 个附件，跳过 {skippedCount} 个已存在附件。", $"jimsoutlooktools {Version}", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show($"保存完成！已保存 {savedCount} 个附件，跳过 {skippedCount} 个已存在附件。", $"jimsoutlooktools {AppVersion}", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (System.Exception ex)
             {
-                MessageBox.Show($"发生错误: {ex.Message}", $"jimsoutlooktools {Version}", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"发生错误: {ex.Message}", $"jimsoutlooktools {AppVersion}", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -155,7 +154,7 @@ namespace jimsoutlooktools
             startDate = DateTime.MinValue;
             endDate = DateTime.MaxValue;
 
-            using (var form = new DateRangePickerForm())
+            using (var form = new DateRangePickerForm(AppVersion))
             {
                 if (form.ShowDialog() == DialogResult.OK)
                 {
@@ -214,9 +213,9 @@ namespace jimsoutlooktools
     {
         private ProgressBar progressBar;
 
-        public ProgressForm()
+        public ProgressForm(string appVersion = "v1.0.1")
         {
-            this.Text = $"jimsoutlooktools {Version} - 保存进度";
+            this.Text = $"jimsoutlooktools {appVersion} - 保存进度";
             this.Width = 400;
             this.Height = 100;
 
@@ -261,9 +260,9 @@ namespace jimsoutlooktools
         public DateTime EndDate { get; private set; }
         public string SavePath { get; private set; }
 
-        public DateRangePickerForm()
+        public DateRangePickerForm(string appVersion = "v1.0.1")
         {
-            this.Text = $"jimsoutlooktools {Version} - 保存邮件附件";
+            this.Text = $"jimsoutlooktools {appVersion} - 保存邮件附件";
             this.Width = 450;
             this.Height = 360;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -283,7 +282,7 @@ namespace jimsoutlooktools
             // 品牌标题
             var brandLabel = new Label
             {
-                Text = $"jimsoutlooktools {Version}",
+                Text = $"jimsoutlooktools {appVersion}",
                 Dock = DockStyle.Fill,
                 TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
                 Font = new System.Drawing.Font("Microsoft Sans Serif", 14, System.Drawing.FontStyle.Bold),

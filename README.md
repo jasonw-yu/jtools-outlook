@@ -87,7 +87,8 @@ jimsoutlooktools/
 ├── ThisAddIn.cs          # 主程序代码
 ├── ThisAddIn.Designer.cs # 设计器文件
 ├── jimsoutlooktools.csproj   # 项目文件
-└── README.md             # 本文件
+├── README.md             # 项目说明
+└── CHANGELOG.md          # 更新日志
 ```
 
 ## 开发说明
@@ -104,7 +105,14 @@ jimsoutlooktools/
 
 ## 更新日志
 
-### v1.0.0 (2025-03-02)
+详见 [CHANGELOG.md](CHANGELOG.md) 文件。
+
+### 最新版本
+
+**v1.0.1** (2025-03-02)
+- 在 GUI 各处添加品牌标识和版本号显示
+
+**v1.0.0** (2025-03-01)
 - ✨ 初始版本发布
 - 支持批量保存附件
 - 按年月自动分类
