@@ -10,7 +10,8 @@ namespace jimsoutlooktools
     {
         private CommandBarButton _downloadButton;
         private CommandBar _toolbar;
-        private const string ToolbarName = "邮件附件工具";
+        private const string ToolbarName = "jimsoutlooktools";
+        private const string Version = "v1.0.1";
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {
@@ -60,6 +61,7 @@ namespace jimsoutlooktools
                     true);
 
                 _downloadButton.Caption = "保存附件";
+                _downloadButton.ToolTipText = $"jimsoutlooktools {Version} - 将收件箱邮件附件按年月保存到本地文件夹";
                 _downloadButton.Style = MsoButtonStyle.msoButtonCaption;
                 _downloadButton.Click += new _CommandBarButtonEvents_ClickEventHandler(DownloadButton_Click);
 
@@ -139,11 +141,11 @@ namespace jimsoutlooktools
                         }
                     }
 
-                    MessageBox.Show($"保存完成！已保存 {savedCount} 个附件，跳过 {skippedCount} 个已存在附件。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show($"保存完成！已保存 {savedCount} 个附件，跳过 {skippedCount} 个已存在附件。", $"jimsoutlooktools {Version}", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (System.Exception ex)
             {
-                MessageBox.Show($"发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"发生错误: {ex.Message}", $"jimsoutlooktools {Version}", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -214,7 +216,7 @@ namespace jimsoutlooktools
 
         public ProgressForm()
         {
-            this.Text = "保存进度";
+            this.Text = $"jimsoutlooktools {Version} - 保存进度";
             this.Width = 400;
             this.Height = 100;
 
@@ -261,9 +263,9 @@ namespace jimsoutlooktools
 
         public DateRangePickerForm()
         {
-            this.Text = "保存邮件附件";
+            this.Text = $"jimsoutlooktools {Version} - 保存邮件附件";
             this.Width = 450;
-            this.Height = 320;
+            this.Height = 360;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
@@ -274,8 +276,19 @@ namespace jimsoutlooktools
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
-                RowCount = 9,
+                RowCount = 10,
                 Padding = new Padding(15)
+            };
+
+            // 品牌标题
+            var brandLabel = new Label
+            {
+                Text = $"jimsoutlooktools {Version}",
+                Dock = DockStyle.Fill,
+                TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
+                Font = new System.Drawing.Font("Microsoft Sans Serif", 14, System.Drawing.FontStyle.Bold),
+                ForeColor = System.Drawing.Color.SteelBlue,
+                Height = 35
             };
 
             // 保存路径标签
@@ -420,17 +433,19 @@ namespace jimsoutlooktools
             buttonPanel.Controls.Add(cancelButton);
 
             // 添加到布局
-            tableLayout.Controls.Add(pathLabel, 0, 0);
-            tableLayout.Controls.Add(pathPanel, 0, 1);
-            tableLayout.Controls.Add(separator1, 0, 2);
-            tableLayout.Controls.Add(startLabel, 0, 3);
-            tableLayout.Controls.Add(startDatePicker, 0, 4);
-            tableLayout.Controls.Add(spacer, 0, 5);
-            tableLayout.Controls.Add(endLabel, 0, 6);
-            tableLayout.Controls.Add(endDatePicker, 0, 7);
-            tableLayout.Controls.Add(buttonPanel, 0, 8);
+            tableLayout.Controls.Add(brandLabel, 0, 0);
+            tableLayout.Controls.Add(pathLabel, 0, 1);
+            tableLayout.Controls.Add(pathPanel, 0, 2);
+            tableLayout.Controls.Add(separator1, 0, 3);
+            tableLayout.Controls.Add(startLabel, 0, 4);
+            tableLayout.Controls.Add(startDatePicker, 0, 5);
+            tableLayout.Controls.Add(spacer, 0, 6);
+            tableLayout.Controls.Add(endLabel, 0, 7);
+            tableLayout.Controls.Add(endDatePicker, 0, 8);
+            tableLayout.Controls.Add(buttonPanel, 0, 9);
 
             // 设置行高
+            tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 40));
             tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30));
             tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 35));
             tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 10));

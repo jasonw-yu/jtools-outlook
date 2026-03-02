@@ -3,7 +3,7 @@
 [![版本](https://img.shields.io/badge/版本-v1.0.0-blue)](https://gitee.com/jim/jimsoutlooktools)
 [![协议](https://img.shields.io/badge/协议-MIT-green)](LICENSE)
 
-一个简单易用的 Outlook 附件保存工具，帮助您快速批量保存邮件附件，并按年月自动分类整理。
+Jim的outlook工具集，当前仅开发完成一个简单易用的 Outlook 附件保存工具，帮助您快速批量保存邮件附件，并按年月自动分类整理。
 
 **当前版本：v1.0.0**
 
