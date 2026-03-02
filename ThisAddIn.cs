@@ -75,26 +75,17 @@ namespace jimsoutlooktools
         {
             try
             {
-                using (var folderDialog = new FolderBrowserDialog())
+                string saveRoot;
+                DateTime startDate, endDate;
+
+                if (!SelectSaveOptions(out saveRoot, out startDate, out endDate))
                 {
-                    folderDialog.Description = "请选择附件保存的根文件夹";
-                    if (folderDialog.ShowDialog() != DialogResult.OK || string.IsNullOrWhiteSpace(folderDialog.SelectedPath))
-                    {
-                        MessageBox.Show("未选择保存路径，操作取消。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        return;
-                    }
+                    MessageBox.Show("操作取消。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
 
-                    string saveRoot = folderDialog.SelectedPath;
-
-                    DateTime startDate, endDate;
-                    if (!SelectDateRange(out startDate, out endDate))
-                    {
-                        MessageBox.Show("未选择日期范围，操作取消。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        return;
-                    }
-
-                    MAPIFolder inbox = Application.Session.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
-                    Items items = inbox.Items;
+                MAPIFolder inbox = Application.Session.GetDefaultFolder(OlDefaultFolders.olFolderInbox);
+                Items items = inbox.Items;
 
                     int savedCount = 0;
                     int skippedCount = 0;
@@ -115,17 +106,30 @@ namespace jimsoutlooktools
 
                                     foreach (Attachment attachment in mailItem.Attachments)
                                     {
-                                        string safeFileName = SanitizeFileName(attachment.FileName);
-                                        string targetPath = Path.Combine(monthFolder, safeFileName);
-
-                                        if (!File.Exists(targetPath))
+                                        // 跳过内联图片（小于100KB的图片文件通常是邮件正文中的图标、表情等）
+                                        string ext = Path.GetExtension(attachment.FileName).ToLower();
+                                        bool isImage = ext == ".png" || ext == ".jpg" || ext == ".jpeg" || 
+                                                       ext == ".gif" || ext == ".bmp" || ext == ".ico" || ext == ".webp";
+                                        
+                                        if (isImage && attachment.Size < 102400) // 小于100KB的图片跳过
                                         {
-                                            attachment.SaveAsFile(targetPath);
-                                            savedCount++;
+                                            continue;
+                                        }
+
+                                        string safeFileName = SanitizeFileName(attachment.FileName);
+                                        // 使用邮件接收时间戳+原文件名作为唯一标识
+                                        string timestamp = mailItem.ReceivedTime.ToString("yyyyMMdd_HHmmss_fff");
+                                        string uniqueFileName = $"{timestamp}_{safeFileName}";
+                                        string targetPath = Path.Combine(monthFolder, uniqueFileName);
+
+                                        if (File.Exists(targetPath))
+                                        {
+                                            skippedCount++;
                                         }
                                         else
                                         {
-                                            skippedCount++;
+                                            attachment.SaveAsFile(targetPath);
+                                            savedCount++;
                                         }
                                     }
                                 }
@@ -135,8 +139,7 @@ namespace jimsoutlooktools
                         }
                     }
 
-                    MessageBox.Show($"保存完成！已保存 {savedCount} 个附件，跳过 {skippedCount} 个附件。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
+                    MessageBox.Show($"保存完成！已保存 {savedCount} 个附件，跳过 {skippedCount} 个已存在附件。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (System.Exception ex)
             {
@@ -144,8 +147,9 @@ namespace jimsoutlooktools
             }
         }
 
-        private bool SelectDateRange(out DateTime startDate, out DateTime endDate)
+        private bool SelectSaveOptions(out string saveRoot, out DateTime startDate, out DateTime endDate)
         {
+            saveRoot = null;
             startDate = DateTime.MinValue;
             endDate = DateTime.MaxValue;
 
@@ -153,8 +157,10 @@ namespace jimsoutlooktools
             {
                 if (form.ShowDialog() == DialogResult.OK)
                 {
-                    startDate = form.StartDate;
-                    endDate = form.EndDate;
+                    saveRoot = form.SavePath;
+                    // 起始日期设为当天00:00:00，结束日期设为当天23:59:59，确保包含整天
+                    startDate = form.StartDate.Date;
+                    endDate = form.EndDate.Date.AddHours(23).AddMinutes(59).AddSeconds(59);
 
                     if (startDate > endDate)
                     {
@@ -244,26 +250,160 @@ namespace jimsoutlooktools
     {
         private DateTimePicker startDatePicker;
         private DateTimePicker endDatePicker;
+        private TextBox pathTextBox;
+        private Button browseButton;
         private Button okButton;
         private Button cancelButton;
 
         public DateTime StartDate { get; private set; }
         public DateTime EndDate { get; private set; }
+        public string SavePath { get; private set; }
 
         public DateRangePickerForm()
         {
-            this.Text = "选择日期范围";
-            this.Width = 300;
-            this.Height = 200;
+            this.Text = "保存邮件附件";
+            this.Width = 450;
+            this.Height = 320;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.StartPosition = FormStartPosition.CenterScreen;
 
-            startDatePicker = new DateTimePicker { Dock = DockStyle.Top };
-            endDatePicker = new DateTimePicker { Dock = DockStyle.Top };
+            // 主容器
+            var tableLayout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 9,
+                Padding = new Padding(15)
+            };
 
-            okButton = new Button { Text = "确定", Dock = DockStyle.Bottom };
-            cancelButton = new Button { Text = "取消", Dock = DockStyle.Bottom };
+            // 保存路径标签
+            var pathLabel = new Label
+            {
+                Text = "保存路径：",
+                Dock = DockStyle.Fill,
+                TextAlign = System.Drawing.ContentAlignment.BottomLeft,
+                Font = new System.Drawing.Font("Microsoft Sans Serif", 10, System.Drawing.FontStyle.Bold),
+                Height = 25
+            };
+
+            // 路径选择面板
+            var pathPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Height = 30
+            };
+
+            pathTextBox = new TextBox
+            {
+                Left = 0,
+                Top = 2,
+                Width = 330,
+                Height = 25,
+                ReadOnly = true
+            };
+
+            browseButton = new Button
+            {
+                Text = "浏览...",
+                Left = 340,
+                Top = 0,
+                Width = 70,
+                Height = 28
+            };
+            browseButton.Click += BrowseButton_Click;
+
+            pathPanel.Controls.Add(pathTextBox);
+            pathPanel.Controls.Add(browseButton);
+
+            // 分隔线1
+            var separator1 = new Label
+            {
+                Text = "",
+                Dock = DockStyle.Fill,
+                Height = 5,
+                BorderStyle = BorderStyle.Fixed3D
+            };
+
+            // 起始日期标签
+            var startLabel = new Label
+            {
+                Text = "起始日期：",
+                Dock = DockStyle.Fill,
+                TextAlign = System.Drawing.ContentAlignment.BottomLeft,
+                Font = new System.Drawing.Font("Microsoft Sans Serif", 10, System.Drawing.FontStyle.Bold),
+                Height = 25
+            };
+
+            // 起始日期选择器
+            startDatePicker = new DateTimePicker
+            {
+                Dock = DockStyle.Fill,
+                Format = DateTimePickerFormat.Short,
+                Height = 25
+            };
+
+            // 分隔
+            var spacer = new Label
+            {
+                Text = "",
+                Dock = DockStyle.Fill,
+                Height = 5
+            };
+
+            // 结束日期标签
+            var endLabel = new Label
+            {
+                Text = "结束日期：",
+                Dock = DockStyle.Fill,
+                TextAlign = System.Drawing.ContentAlignment.BottomLeft,
+                Font = new System.Drawing.Font("Microsoft Sans Serif", 10, System.Drawing.FontStyle.Bold),
+                Height = 25
+            };
+
+            // 结束日期选择器
+            endDatePicker = new DateTimePicker
+            {
+                Dock = DockStyle.Fill,
+                Format = DateTimePickerFormat.Short,
+                Height = 25
+            };
+
+            // 按钮面板
+            var buttonPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Height = 40
+            };
+
+            okButton = new Button
+            {
+                Text = "确定",
+                Width = 80,
+                Height = 30,
+                Left = 120,
+                Top = 5
+            };
+
+            cancelButton = new Button
+            {
+                Text = "取消",
+                Width = 80,
+                Height = 30,
+                Left = 220,
+                Top = 5
+            };
 
             okButton.Click += (sender, e) =>
             {
+                if (string.IsNullOrWhiteSpace(pathTextBox.Text))
+                {
+                    MessageBox.Show("请先选择保存路径！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                SavePath = pathTextBox.Text;
                 StartDate = startDatePicker.Value;
                 EndDate = endDatePicker.Value;
                 this.DialogResult = DialogResult.OK;
@@ -276,10 +416,44 @@ namespace jimsoutlooktools
                 this.Close();
             };
 
-            this.Controls.Add(endDatePicker);
-            this.Controls.Add(startDatePicker);
-            this.Controls.Add(okButton);
-            this.Controls.Add(cancelButton);
+            buttonPanel.Controls.Add(okButton);
+            buttonPanel.Controls.Add(cancelButton);
+
+            // 添加到布局
+            tableLayout.Controls.Add(pathLabel, 0, 0);
+            tableLayout.Controls.Add(pathPanel, 0, 1);
+            tableLayout.Controls.Add(separator1, 0, 2);
+            tableLayout.Controls.Add(startLabel, 0, 3);
+            tableLayout.Controls.Add(startDatePicker, 0, 4);
+            tableLayout.Controls.Add(spacer, 0, 5);
+            tableLayout.Controls.Add(endLabel, 0, 6);
+            tableLayout.Controls.Add(endDatePicker, 0, 7);
+            tableLayout.Controls.Add(buttonPanel, 0, 8);
+
+            // 设置行高
+            tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30));
+            tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 35));
+            tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 10));
+            tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30));
+            tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 35));
+            tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 10));
+            tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30));
+            tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 35));
+            tableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 50));
+
+            this.Controls.Add(tableLayout);
+        }
+
+        private void BrowseButton_Click(object sender, EventArgs e)
+        {
+            using (var folderDialog = new FolderBrowserDialog())
+            {
+                folderDialog.Description = "请选择附件保存的根文件夹";
+                if (folderDialog.ShowDialog() == DialogResult.OK)
+                {
+                    pathTextBox.Text = folderDialog.SelectedPath;
+                }
+            }
         }
     }
 }
