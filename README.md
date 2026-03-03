@@ -105,7 +105,7 @@ jimsoutlooktools/
 
 详见 [CHANGELOG.md](CHANGELOG.md) 文件。
 
-### 最新版本：v1.0.2
+### 最新版本：v1.0.3
 - 优化内存管理，解决大日期范围处理时内存不足问题
 
 ## 贡献指南

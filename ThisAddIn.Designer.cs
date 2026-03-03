@@ -238,7 +238,13 @@ namespace jimsoutlooktools {
         internal ThisRibbonCollection(global::Microsoft.Office.Tools.Ribbon.RibbonFactory factory) : 
                 base(factory) {
         }
-        
+
+        internal RibbonTools RibbonTools {
+            get {
+                return this.GetRibbon<RibbonTools>();
+            }
+        }
+
         internal ThisRibbonCollection this[Microsoft.Office.Interop.Outlook.Inspector inspector] {
             get {
                 return this.GetRibbonContextCollection<ThisRibbonCollection>(inspector);
