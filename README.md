@@ -115,10 +115,10 @@
 ## 项目结构
 
 ```
-JTools-outlook/
+jtools-outlook/
 ├── ThisAddIn.cs          # 主程序代码
 ├── ThisAddIn.Designer.cs # 设计器文件
-├── JTools-outlook.csproj   # 项目文件
+├── jtools-outlook.csproj   # 项目文件
 ├── README.md             # 项目说明
 └── CHANGELOG.md          # 更新日志
 ```

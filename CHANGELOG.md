@@ -10,7 +10,7 @@
 ## [v1.0.6] - 2026-03-04
 
 ### 更改
-- 项目名称从 `jimsoutlooktools` 更改为 `JTools-outlook`
+- 项目名称从 `jimsoutlooktools` 更改为 `jtools-outlook`
 - 版本升级至 1.0.6
 
 ---

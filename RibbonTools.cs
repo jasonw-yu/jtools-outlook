@@ -7,7 +7,7 @@ using System.Windows.Forms;
 using Microsoft.Office.Tools.Ribbon;
 using Outlook = Microsoft.Office.Interop.Outlook;
 
-namespace JTools_outlook
+namespace jtools_outlook
 {
     public partial class RibbonTools
     {

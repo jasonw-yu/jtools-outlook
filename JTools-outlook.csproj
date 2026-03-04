@@ -24,8 +24,8 @@
     <ProjectGuid>{5A2DD7D9-66E0-4E40-AAAE-A0C77482EFE5}</ProjectGuid>
     <OutputType>Library</OutputType>
     <NoStandardLibraries>false</NoStandardLibraries>
-    <RootNamespace>JTools_outlook</RootNamespace>
-    <AssemblyName>JTools_outlook</AssemblyName>
+    <RootNamespace>jtools_outlook</RootNamespace>
+    <AssemblyName>jtools_outlook</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <DefineConstants>VSTO40</DefineConstants>
     <ResolveComReferenceSilent>true</ResolveComReferenceSilent>
@@ -39,10 +39,10 @@
     <UpdateEnabled>true</UpdateEnabled>
     <UpdateInterval>7</UpdateInterval>
     <UpdateIntervalUnits>days</UpdateIntervalUnits>
-    <ProductName>JTools-outlook</ProductName>
+    <ProductName>jtools-outlook</ProductName>
     <PublisherName />
     <SupportUrl />
-    <FriendlyName>JTools-outlook</FriendlyName>
+    <FriendlyName>jtools-outlook</FriendlyName>
     <OfficeApplicationDescription />
     <LoadBehavior>3</LoadBehavior>
   </PropertyGroup>
@@ -208,7 +208,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <None Include=".github\copilot-instructions.md" />
-    <None Include="JTools-outlook_TemporaryKey.pfx" />
+    <None Include="jtools-outlook_TemporaryKey.pfx" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -243,7 +243,7 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <ManifestKeyFile>JTools-outlook_TemporaryKey.pfx</ManifestKeyFile>
+    <ManifestKeyFile>jtools-outlook_TemporaryKey.pfx</ManifestKeyFile>
   </PropertyGroup>
   <PropertyGroup>
     <ManifestCertificateThumbprint>91890B7137A171C613DD6A646B29040D990B2BAC</ManifestCertificateThumbprint>
@@ -256,7 +256,7 @@
     <VisualStudio>
       <FlavorProperties GUID="{BAA0C2D2-18E2-41B9-852F-F413020CAA33}">
         <ProjectProperties HostName="Outlook" HostPackage="{29A7B9D7-A7F1-4328-8EF0-6B2D1A56B2C1}" OfficeVersion="15.0" VstxVersion="4.0" ApplicationType="Outlook" Language="cs" TemplatesPath="" DebugInfoExeName="#Software\Microsoft\Office\16.0\Outlook\InstallRoot\Path#outlook.exe" AddItemTemplatesGuid="{A58A78EB-1C92-4DDD-80CF-E8BD872ABFC4}" />
-        <Host Name="Outlook" GeneratedCodeNamespace="JTools_outlook" PublishedHash="69C324AB27932AA2FBF2B7EA72250886FF164DE6" IconIndex="0">
+        <Host Name="Outlook" GeneratedCodeNamespace="jtools_outlook" PublishedHash="69C324AB27932AA2FBF2B7EA72250886FF164DE6" IconIndex="0">
           <HostItem Name="ThisAddIn" Code="ThisAddIn.cs" CanonicalName="AddIn" PublishedHash="4D61C8BBCE8D313AEB79ECD055DF80567060EB04" CanActivate="false" IconIndex="1" Blueprint="ThisAddIn.Designer.xml" GeneratedCode="ThisAddIn.Designer.cs" />
         </Host>
       </FlavorProperties>

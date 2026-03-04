@@ -8,7 +8,7 @@ using Microsoft.Office.Interop.Outlook;
 using Office = Microsoft.Office.Core;
 using Outlook = Microsoft.Office.Interop.Outlook;
 
-namespace JTools_outlook
+namespace jtools_outlook
 {
     public partial class ThisAddIn
     {

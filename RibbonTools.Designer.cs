@@ -1,4 +1,4 @@
-namespace JTools_outlook
+namespace jtools_outlook
 {
     partial class RibbonTools : Microsoft.Office.Tools.Ribbon.RibbonBase
     {
