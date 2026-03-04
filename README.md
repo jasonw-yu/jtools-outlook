@@ -1,6 +1,6 @@
 # JTools
 
-[![版本](https://img.shields.io/badge/版本-v1.0.5-blue)](https://gitee.com/jim/jimsoutlooktools)
+[![版本](https://img.shields.io/badge/版本-v1.0.6-blue)](https://gitee.com/jim/JTools-outlook)
 [![协议](https://img.shields.io/badge/协议-MIT-green)](LICENSE)
 
 > ⚠️ **Vibe Coding 警告**
@@ -51,9 +51,9 @@
 ### 方法二：手动安装（开发者）
 1. 克隆仓库
    ```bash
-   git clone https://gitee.com/jim/jimsoutlooktools.git
+   git clone https://gitee.com/jim/JTools-outlook.git
    ```
-2. 使用 Visual Studio 打开 `jimsoutlooktools.slnx`
+2. 使用 Visual Studio 打开 `JTools-outlook.slnx`
 3. 编译并发布项目
 4. 在 Outlook 中启用加载项
 
@@ -115,10 +115,10 @@
 ## 项目结构
 
 ```
-jimsoutlooktools/
+JTools-outlook/
 ├── ThisAddIn.cs          # 主程序代码
 ├── ThisAddIn.Designer.cs # 设计器文件
-├── jimsoutlooktools.csproj   # 项目文件
+├── JTools-outlook.csproj   # 项目文件
 ├── README.md             # 项目说明
 └── CHANGELOG.md          # 更新日志
 ```

@@ -8,11 +8,11 @@ using Microsoft.Office.Interop.Outlook;
 using Office = Microsoft.Office.Core;
 using Outlook = Microsoft.Office.Interop.Outlook;
 
-namespace jimsoutlooktools
+namespace JTools_outlook
 {
     public partial class ThisAddIn
     {
-        private const string AppVersion = "v1.0.5";
+        private const string AppVersion = "v1.0.6";
 
         private void ThisAddIn_Startup(object sender, System.EventArgs e)
         {

@@ -7,6 +7,14 @@
 
 ---
 
+## [v1.0.6] - 2026-03-04
+
+### 更改
+- 项目名称从 `jimsoutlooktools` 更改为 `JTools-outlook`
+- 版本升级至 1.0.6
+
+---
+
 ## [v1.0.5] - 2025-03-03
 
 ### 新增
@@ -128,4 +136,4 @@
 
 ---
 
-如有问题或建议，欢迎提交 [Issue](https://gitee.com/jim/jimsoutlooktools/issues) 或 [Pull Request](https://gitee.com/jim/jimsoutlooktools/pulls)。
+如有问题或建议，欢迎提交 [Issue](https://gitee.com/jim/JTools-outlook/issues) 或 [Pull Request](https://gitee.com/jim/JTools-outlook/pulls)。

@@ -7,11 +7,11 @@ using System.Windows.Forms;
 using Microsoft.Office.Tools.Ribbon;
 using Outlook = Microsoft.Office.Interop.Outlook;
 
-namespace jimsoutlooktools
+namespace JTools_outlook
 {
     public partial class RibbonTools
     {
-        private const string AppVersion = "v1.0.5";
+        private const string AppVersion = "v1.0.6";
 
         private void RibbonTools_Load(object sender, RibbonUIEventArgs e)
         {
@@ -997,13 +997,13 @@ namespace jimsoutlooktools
             {
                 using (var resultForm = new SaveResultForm(message.ToString()))
                 {
-                    resultForm.Text = $"jimsoutlooktools - 同步结果详情";
+                    resultForm.Text = $"JTools - 同步结果详情";
                     resultForm.ShowDialog();
                 }
             }
             else
             {
-                MessageBox.Show(message.ToString(), "jimsoutlooktools - 同步结果",
+                MessageBox.Show(message.ToString(), "JTools - 同步结果",
                     MessageBoxButtons.OK, failedCount > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
             }
         }
