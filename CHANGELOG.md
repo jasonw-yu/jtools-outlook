@@ -136,4 +136,4 @@
 
 ---
 
-如有问题或建议，欢迎提交 [Issue](https://gitee.com/jim/JTools-outlook/issues) 或 [Pull Request](https://gitee.com/jim/JTools-outlook/pulls)。
+如有问题或建议，欢迎提交 [Issue](https://gitee.com/jinwyu/jtools-outlook/issues) 或 [Pull Request](https://gitee.com/jinwyu/jtools-outlook/pulls)。
