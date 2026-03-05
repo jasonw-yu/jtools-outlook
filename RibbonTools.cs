@@ -11,7 +11,7 @@ namespace jtools_outlook
 {
     public partial class RibbonTools
     {
-        private const string AppVersion = "v1.0.7";
+        private const string AppVersion = "v1.0.8";
 
         private void RibbonTools_Load(object sender, RibbonUIEventArgs e)
         {
@@ -1102,6 +1102,134 @@ namespace jtools_outlook
             {
                 MessageBox.Show(
                     $"无法添加阻止域: {ex.Message}",
+                    "JTools-outlook - 错误",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        #endregion
+
+        #region 带附件全部答复功能
+
+        private void btnReplyAllWithAttachments_Click(object sender, RibbonControlEventArgs e)
+        {
+            try
+            {
+                // 获取当前选中的邮件
+                var explorer = Globals.ThisAddIn.Application.ActiveExplorer();
+                if (explorer == null || explorer.Selection == null || explorer.Selection.Count == 0)
+                {
+                    MessageBox.Show("请先选择一封邮件。", "JTools-outlook - 提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                var selectedItem = explorer.Selection[1];
+                if (!(selectedItem is Outlook.MailItem originalMail))
+                {
+                    MessageBox.Show("选中的项目不是邮件。", "JTools-outlook - 提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // 检查是否有附件
+                if (originalMail.Attachments.Count == 0)
+                {
+                    MessageBox.Show("当前邮件没有附件。", "JTools-outlook - 提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // 创建全部答复邮件
+                Outlook.MailItem replyMail = originalMail.ReplyAll();
+
+                // 创建临时文件夹
+                string tempFolder = Path.Combine(Path.GetTempPath(), $"JTools_Attachments_{Guid.NewGuid():N}");
+                Directory.CreateDirectory(tempFolder);
+
+                int copiedCount = 0;
+                List<string> tempFiles = new List<string>();
+
+                try
+                {
+                    // 将原邮件的附件保存到临时文件夹，然后添加到答复邮件中
+                    for (int i = 1; i <= originalMail.Attachments.Count; i++)
+                    {
+                        var attachment = originalMail.Attachments[i];
+                        try
+                        {
+                            // 获取附件的文件名
+                            string fileName = attachment.FileName;
+                            if (string.IsNullOrEmpty(fileName))
+                            {
+                                fileName = $"Attachment{i}";
+                            }
+
+                            // 检查是否为图片文件
+                            string extension = Path.GetExtension(fileName).ToLower();
+                            string[] imageExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".ico", ".webp" };
+                            bool isImage = imageExtensions.Contains(extension);
+
+                            // 如果是图片且小于 100KB，跳过
+                            if (isImage && attachment.Size < 100 * 1024)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"跳过小图片附件 {fileName} ({attachment.Size} bytes)");
+                                continue;
+                            }
+
+                            // 保存附件到临时文件夹
+                            string tempFilePath = Path.Combine(tempFolder, fileName);
+                            attachment.SaveAsFile(tempFilePath);
+                            tempFiles.Add(tempFilePath);
+
+                            // 将附件添加到答复邮件
+                            replyMail.Attachments.Add(
+                                tempFilePath,
+                                Outlook.OlAttachmentType.olByValue,
+                                Type.Missing,
+                                fileName
+                            );
+                            copiedCount++;
+                        }
+                        catch (System.Exception ex)
+                        {
+                            // 某些附件可能无法复制（如内嵌图片），跳过
+                            System.Diagnostics.Debug.WriteLine($"无法复制附件 {attachment.FileName}: {ex.Message}");
+                        }
+                    }
+
+                    // 显示答复邮件编辑窗口
+                    replyMail.Display(false);
+                }
+                finally
+                {
+                    // 延迟删除临时文件（等待邮件窗口完全打开）
+                    System.Threading.Tasks.Task.Run(async () =>
+                    {
+                        await System.Threading.Tasks.Task.Delay(5000); // 等待5秒
+                        try
+                        {
+                            foreach (var tempFile in tempFiles)
+                            {
+                                if (File.Exists(tempFile))
+                                {
+                                    File.Delete(tempFile);
+                                }
+                            }
+                            if (Directory.Exists(tempFolder))
+                            {
+                                Directory.Delete(tempFolder, true);
+                            }
+                        }
+                        catch { }
+                    });
+                }
+
+                // 释放资源
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(replyMail);
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show(
+                    $"带附件全部答复时发生错误：{ex.Message}",
                     "JTools-outlook - 错误",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);

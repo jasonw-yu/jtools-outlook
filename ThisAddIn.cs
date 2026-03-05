@@ -1509,7 +1509,7 @@ namespace jtools_outlook
             // 版本号
             var lblVersion = new Label
             {
-                Text = "版本 v1.0.7",
+                Text = "版本 v1.0.8",
                 Dock = DockStyle.Fill,
                 TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
                 Font = new System.Drawing.Font("Microsoft Sans Serif", 11),
@@ -1528,7 +1528,7 @@ namespace jtools_outlook
             // 描述
             var lblDescription = new Label
             {
-                Text = "Outlook 邮件附件管理和数据同步工具\n帮助您高效管理邮件附件和同步数据",
+                Text = "Outlook功能增强工具",
                 Dock = DockStyle.Fill,
                 TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
                 Font = new System.Drawing.Font("Microsoft Sans Serif", 9),

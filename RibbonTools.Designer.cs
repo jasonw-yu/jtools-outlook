@@ -38,15 +38,18 @@ namespace jtools_outlook
             this.groupAttachments = this.Factory.CreateRibbonGroup();
             this.groupSync = this.Factory.CreateRibbonGroup();
             this.groupBlockDomain = this.Factory.CreateRibbonGroup();
+            this.groupReply = this.Factory.CreateRibbonGroup();
             this.groupAbout = this.Factory.CreateRibbonGroup();
             this.btnSaveAttachments = this.Factory.CreateRibbonButton();
             this.btnDownloadOnline = this.Factory.CreateRibbonButton();
             this.btnBlockDomain = this.Factory.CreateRibbonButton();
+            this.btnReplyAllWithAttachments = this.Factory.CreateRibbonButton();
             this.btnAbout = this.Factory.CreateRibbonButton();
             this.tabJimsOutlookTools.SuspendLayout();
             this.groupAttachments.SuspendLayout();
             this.groupSync.SuspendLayout();
             this.groupBlockDomain.SuspendLayout();
+            this.groupReply.SuspendLayout();
             // 
             // tabJimsOutlookTools
             // 
@@ -54,6 +57,7 @@ namespace jtools_outlook
             this.tabJimsOutlookTools.Groups.Add(this.groupAttachments);
             this.tabJimsOutlookTools.Groups.Add(this.groupSync);
             this.tabJimsOutlookTools.Groups.Add(this.groupBlockDomain);
+            this.tabJimsOutlookTools.Groups.Add(this.groupReply);
             this.tabJimsOutlookTools.Groups.Add(this.groupAbout);
             this.tabJimsOutlookTools.Label = "JTools";
             this.tabJimsOutlookTools.Name = "tabJimsOutlookTools";
@@ -75,6 +79,12 @@ namespace jtools_outlook
             this.groupBlockDomain.Items.Add(this.btnBlockDomain);
             this.groupBlockDomain.Label = "垃圾邮件";
             this.groupBlockDomain.Name = "groupBlockDomain";
+            //
+            // groupReply
+            //
+            this.groupReply.Items.Add(this.btnReplyAllWithAttachments);
+            this.groupReply.Label = "邮件答复";
+            this.groupReply.Name = "groupReply";
             //
             // groupAbout
             //
@@ -112,6 +122,16 @@ namespace jtools_outlook
             this.btnBlockDomain.SuperTip = "将当前选中邮件的发件人域添加到阻止发件人列表";
             this.btnBlockDomain.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnBlockDomain_Click);
             //
+            // btnReplyAllWithAttachments
+            //
+            this.btnReplyAllWithAttachments.Label = "带附件全部答复";
+            this.btnReplyAllWithAttachments.Name = "btnReplyAllWithAttachments";
+            this.btnReplyAllWithAttachments.OfficeImageId = "ReplyAll";
+            this.btnReplyAllWithAttachments.ScreenTip = "带附件全部答复";
+            this.btnReplyAllWithAttachments.ShowImage = true;
+            this.btnReplyAllWithAttachments.SuperTip = "全部答复当前选中邮件，并带上原邮件的所有附件";
+            this.btnReplyAllWithAttachments.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnReplyAllWithAttachments_Click);
+            //
             // btnAbout
             //
             this.btnAbout.Label = "关于";
@@ -136,6 +156,8 @@ namespace jtools_outlook
             this.groupSync.PerformLayout();
             this.groupBlockDomain.ResumeLayout(false);
             this.groupBlockDomain.PerformLayout();
+            this.groupReply.ResumeLayout(false);
+            this.groupReply.PerformLayout();
             this.groupAbout.ResumeLayout(false);
             this.groupAbout.PerformLayout();
             this.ResumeLayout(false);
@@ -148,10 +170,12 @@ namespace jtools_outlook
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupAttachments;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupSync;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupBlockDomain;
+        internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupReply;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupAbout;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnSaveAttachments;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnDownloadOnline;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnBlockDomain;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnReplyAllWithAttachments;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnAbout;
     }
 }
