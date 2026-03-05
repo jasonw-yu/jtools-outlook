@@ -1110,8 +1110,8 @@ namespace jtools_outlook
         {
             try
             {
-                // 使用 Outlook 的 MarkAsJunk 方法来阻止发件人
-                // 然后手动修改为域格式
+                // 使用 Outlook 规则来阻止该域
+                // 创建一个规则：将来自该域的邮件移动到垃圾邮件文件夹
 
                 var explorer = Globals.ThisAddIn.Application.ActiveExplorer();
                 if (explorer == null || explorer.Selection == null || explorer.Selection.Count == 0)
@@ -1125,62 +1125,67 @@ namespace jtools_outlook
                     throw new Exception("选中的项目不是邮件");
                 }
 
-                // 使用 MarkAsJunk 方法先添加发件人到阻止列表
-                // 参数: MarkAsJunk(IsJunk, MoveItem, Action)
-                // IsJunk: true 表示标记为垃圾邮件
-                // MoveItem: true 表示移动到垃圾邮件文件夹
-                // Action: 0 = 无操作, 1 = 添加到阻止发件人列表
-
+                // 尝试使用 Outlook 规则
                 try
                 {
-                    // 调用 MarkAsJunk 方法添加发件人
-                    mailItem.MarkAsJunk(true, true, 1);
+                    var rules = Globals.ThisAddIn.Application.Session.DefaultStore.GetRules();
+                    bool ruleExists = false;
 
-                    // 现在需要修改阻止发件人列表，将具体邮箱改为域
-                    // 使用注册表方法修改
-                    string registryPath = @"Software\Microsoft\Office\16.0\Outlook\Options\Mail";
-                    string valueName = "Junk Mail Block Senders";
-
-                    try
+                    // 检查是否已存在该域的阻止规则
+                    foreach (Outlook.Rule rule in rules)
                     {
-                        var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(registryPath, true);
-                        if (key != null)
+                        if (rule.Name == $"Block Domain: {domain}")
                         {
-                            string existingValue = key.GetValue(valueName) as string ?? "";
-
-                            // 移除具体的发件人邮箱，添加域格式
-                            string senderEmail = mailItem.SenderEmailAddress;
-                            string domainPattern = $"@{domain}";
-
-                            // 检查是否已包含该域
-                            if (!existingValue.Contains(domainPattern))
-                            {
-                                // 添加域格式
-                                string newValue = string.IsNullOrEmpty(existingValue)
-                                    ? domainPattern
-                                    : $"{existingValue};{domainPattern}";
-
-                                key.SetValue(valueName, newValue);
-                            }
-
-                            key.Close();
+                            ruleExists = true;
+                            System.Runtime.InteropServices.Marshal.ReleaseComObject(rule);
+                            break;
                         }
-                    }
-                    catch
-                    {
-                        // 注册表修改失败不影响主流程
+                        System.Runtime.InteropServices.Marshal.ReleaseComObject(rule);
                     }
 
-                    MessageBox.Show(
-                        $"已将发件人域 '*@{domain}' 添加到阻止发件人列表。\n\n来自该域的所有邮件将被自动移动到垃圾邮件文件夹。",
-                        "JTools-outlook - 操作成功",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
+                    if (!ruleExists)
+                    {
+                        // 创建新规则
+                        var newRule = rules.Create($"Block Domain: {domain}", Outlook.OlRuleType.olRuleReceive);
+
+                        // 设置条件：发件人地址包含该域
+                        newRule.Conditions.SenderAddress.Enabled = true;
+                        newRule.Conditions.SenderAddress.Address = new string[] { $"@{domain}" };
+
+                        // 设置动作：移动到垃圾邮件文件夹
+                        var junkFolder = Globals.ThisAddIn.Application.Session.GetDefaultFolder(Outlook.OlDefaultFolders.olFolderJunk);
+                        newRule.Actions.MoveToFolder.Enabled = true;
+                        newRule.Actions.MoveToFolder.Folder = junkFolder;
+
+                        // 保存规则
+                        rules.Save();
+
+                        // 将当前邮件移动到垃圾邮件文件夹
+                        mailItem.Move(junkFolder);
+
+                        MessageBox.Show(
+                            $"已创建规则阻止域 '*@{domain}'。\n\n来自该域的所有邮件将被自动移动到垃圾邮件文件夹。",
+                            "JTools-outlook - 操作成功",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+
+                        System.Runtime.InteropServices.Marshal.ReleaseComObject(junkFolder);
+                        System.Runtime.InteropServices.Marshal.ReleaseComObject(newRule);
+                    }
+                    else
+                    {
+                        MessageBox.Show(
+                            $"域 '*@{domain}' 已在阻止列表中。",
+                            "JTools-outlook - 提示",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Information);
+                    }
+
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(rules);
                 }
-                catch (Exception markEx)
+                catch (Exception ruleEx)
                 {
-                    // 如果 MarkAsJunk 方法失败，使用备用方法
-                    // 直接将邮件移动到垃圾邮件文件夹，并提示用户手动添加
+                    // 如果规则方法失败，直接将邮件移动到垃圾邮件文件夹，并提示用户手动添加
 
                     var junkFolder = Globals.ThisAddIn.Application.Session.GetDefaultFolder(Outlook.OlDefaultFolders.olFolderJunk);
                     mailItem.Move(junkFolder);
