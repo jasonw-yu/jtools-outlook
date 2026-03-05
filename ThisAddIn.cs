@@ -3035,23 +3035,46 @@ namespace jtools_outlook
 
     #region 阻止域对话框
 
-    // 确认对话框
-    public class BlockDomainConfirmForm : Form
+    // 阻止域对话框（合并确认和结果显示）
+    public class BlockDomainDialog : Form
     {
-        public BlockDomainConfirmForm(string domain, string logContent)
+        private TextBox txtLog;
+        private Button btnConfirm;
+        private Button btnCancel;
+        private Button btnCopy;
+        private Button btnClose;
+        private string domain;
+        private string registryPath;
+        private string valueName;
+        private string domainEntry;
+        private string fullRegistryPath;
+
+        public BlockDomainDialog(string domain)
         {
-            this.Text = $"JTools-outlook - 确认阻止域 *@{domain}";
-            this.Width = 600;
-            this.Height = 450;
+            this.domain = domain;
+            this.registryPath = @"Software\Microsoft\Office\16.0\Outlook\Options\Mail";
+            this.valueName = "BlockedSenders";
+            this.domainEntry = $"@{domain}";
+            this.fullRegistryPath = $"HKEY_CURRENT_USER\\{registryPath}";
+
+            this.Text = $"JTools-outlook - 阻止域 *@{domain}";
+            this.Width = 650;
+            this.Height = 500;
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
 
+            InitializeComponents();
+            ShowConfirmLog();
+        }
+
+        private void InitializeComponents()
+        {
             // 标题标签
             var lblTitle = new Label
             {
-                Text = $"确认阻止域: *@{domain}",
+                Text = $"阻止域: *@{domain}",
                 Dock = DockStyle.Top,
                 Height = 40,
                 TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
@@ -3060,9 +3083,8 @@ namespace jtools_outlook
             };
 
             // 日志文本框
-            var txtLog = new TextBox
+            txtLog = new TextBox
             {
-                Text = logContent,
                 Dock = DockStyle.Fill,
                 Multiline = true,
                 ScrollBars = ScrollBars.Vertical,
@@ -3078,109 +3100,54 @@ namespace jtools_outlook
                 Height = 60
             };
 
-            var btnOK = new Button
+            // 确认执行按钮
+            btnConfirm = new Button
             {
-                Text = "确定执行",
-                DialogResult = DialogResult.OK,
+                Text = "确认执行",
                 Width = 120,
                 Height = 35,
-                Left = 150,
+                Left = 90,
                 Top = 12
             };
+            btnConfirm.Click += BtnConfirm_Click;
 
-            var btnCancel = new Button
+            // 取消按钮
+            btnCancel = new Button
             {
                 Text = "取消",
-                DialogResult = DialogResult.Cancel,
                 Width = 120,
                 Height = 35,
-                Left = 320,
+                Left = 230,
                 Top = 12
             };
+            btnCancel.Click += BtnCancel_Click;
 
-            panelButtons.Controls.Add(btnOK);
-            panelButtons.Controls.Add(btnCancel);
-
-            this.Controls.Add(txtLog);
-            this.Controls.Add(lblTitle);
-            this.Controls.Add(panelButtons);
-
-            this.AcceptButton = btnCancel; // 默认取消按钮
-            this.CancelButton = btnCancel;
-        }
-    }
-
-    // 结果对话框
-    public class BlockDomainResultForm : Form
-    {
-        public BlockDomainResultForm(string logContent)
-        {
-            this.Text = "JTools-outlook - 操作结果";
-            this.Width = 600;
-            this.Height = 450;
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-
-            // 标题标签
-            var lblTitle = new Label
-            {
-                Text = "操作日志",
-                Dock = DockStyle.Top,
-                Height = 40,
-                TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
-                Font = new System.Drawing.Font("Microsoft Sans Serif", 14, System.Drawing.FontStyle.Bold),
-                ForeColor = System.Drawing.Color.SteelBlue
-            };
-
-            // 日志文本框
-            var txtLog = new TextBox
-            {
-                Text = logContent,
-                Dock = DockStyle.Fill,
-                Multiline = true,
-                ScrollBars = ScrollBars.Vertical,
-                ReadOnly = true,
-                Font = new System.Drawing.Font("Consolas", 10),
-                BackColor = System.Drawing.Color.White
-            };
-
-            // 按钮面板
-            var panelButtons = new Panel
-            {
-                Dock = DockStyle.Bottom,
-                Height = 60
-            };
-
-            var btnCopy = new Button
+            // 复制日志按钮
+            btnCopy = new Button
             {
                 Text = "复制日志",
                 Width = 120,
                 Height = 35,
-                Left = 150,
-                Top = 12
+                Left = 90,
+                Top = 12,
+                Visible = false
             };
-            btnCopy.Click += (s, e) =>
-            {
-                try
-                {
-                    Clipboard.SetText(logContent);
-                    MessageBox.Show("日志已复制到剪贴板", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
-                catch { }
-            };
+            btnCopy.Click += BtnCopy_Click;
 
-            var btnClose = new Button
+            // 关闭按钮
+            btnClose = new Button
             {
                 Text = "关闭",
-                DialogResult = DialogResult.OK,
                 Width = 120,
                 Height = 35,
-                Left = 320,
-                Top = 12
+                Left = 370,
+                Top = 12,
+                Visible = false
             };
+            btnClose.Click += BtnClose_Click;
 
+            panelButtons.Controls.Add(btnConfirm);
+            panelButtons.Controls.Add(btnCancel);
             panelButtons.Controls.Add(btnCopy);
             panelButtons.Controls.Add(btnClose);
 
@@ -3188,8 +3155,185 @@ namespace jtools_outlook
             this.Controls.Add(lblTitle);
             this.Controls.Add(panelButtons);
 
-            this.AcceptButton = btnClose;
+            this.CancelButton = btnCancel;
+        }
+
+        private void ShowConfirmLog()
+        {
+            var log = new System.Text.StringBuilder();
+            log.AppendLine("【操作内容】");
+            log.AppendLine($"将域 '*@{domain}' 添加到 Outlook 阻止发件人列表");
+            log.AppendLine();
+            log.AppendLine("【注册表修改】");
+            log.AppendLine($"位置: {fullRegistryPath}");
+            log.AppendLine($"值名: {valueName}");
+            log.AppendLine($"类型: REG_MULTI_SZ (多字符串值)");
+            log.AppendLine($"添加内容: {domainEntry}");
+            log.AppendLine();
+            log.AppendLine("【效果】");
+            log.AppendLine("• 来自该域的所有邮件将被自动移动到垃圾邮件文件夹");
+            log.AppendLine("• 当前邮件也会被移动到垃圾邮件文件夹");
+            log.AppendLine("• 可能需要重启 Outlook 使设置生效");
+            log.AppendLine();
+            log.AppendLine("请确认是否继续执行？");
+
+            txtLog.Text = log.ToString();
+        }
+
+        private void BtnConfirm_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                // 执行注册表操作
+                var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(registryPath, true);
+                if (key == null)
+                {
+                    key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(registryPath);
+                }
+
+                // 获取现有的阻止发件人列表
+                string[] existingValues = (string[])key.GetValue(valueName, new string[0]);
+
+                // 检查是否已包含该域
+                bool alreadyExists = false;
+                foreach (string value in existingValues)
+                {
+                    if (value.Equals(domainEntry, StringComparison.OrdinalIgnoreCase))
+                    {
+                        alreadyExists = true;
+                        break;
+                    }
+                }
+
+                if (!alreadyExists)
+                {
+                    // 添加新域到列表
+                    var newValues = new string[existingValues.Length + 1];
+                    existingValues.CopyTo(newValues, 0);
+                    newValues[existingValues.Length] = domainEntry;
+
+                    // 保存到注册表
+                    key.SetValue(valueName, newValues, Microsoft.Win32.RegistryValueKind.MultiString);
+                    key.Close();
+
+                    // 将当前邮件移动到垃圾邮件文件夹
+                    var explorer = Globals.ThisAddIn.Application.ActiveExplorer();
+                    if (explorer != null && explorer.Selection != null && explorer.Selection.Count > 0)
+                    {
+                        var selectedItem = explorer.Selection[1];
+                        if (selectedItem is Outlook.MailItem mailItem)
+                        {
+                            var junkFolder = Globals.ThisAddIn.Application.Session.GetDefaultFolder(Outlook.OlDefaultFolders.olFolderJunk);
+                            mailItem.Move(junkFolder);
+                            System.Runtime.InteropServices.Marshal.ReleaseComObject(junkFolder);
+                        }
+                    }
+
+                    // 显示成功日志
+                    ShowSuccessLog();
+                }
+                else
+                {
+                    key.Close();
+                    ShowAlreadyExistsLog();
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowErrorLog(ex.Message);
+            }
+        }
+
+        private void ShowSuccessLog()
+        {
+            var log = new System.Text.StringBuilder();
+            log.AppendLine("【操作成功】");
+            log.AppendLine($"已将域 '*@{domain}' 添加到阻止发件人列表");
+            log.AppendLine();
+            log.AppendLine("【注册表修改】");
+            log.AppendLine($"位置: {fullRegistryPath}");
+            log.AppendLine($"值名: {valueName}");
+            log.AppendLine($"类型: REG_MULTI_SZ (多字符串值)");
+            log.AppendLine($"添加内容: {domainEntry}");
+            log.AppendLine();
+            log.AppendLine("【效果】");
+            log.AppendLine("来自该域的所有邮件将被自动移动到垃圾邮件文件夹");
+            log.AppendLine();
+            log.AppendLine("【提示】");
+            log.AppendLine("可能需要重启 Outlook 使设置生效");
+
+            txtLog.Text = log.ToString();
+            SwitchToResultMode();
+        }
+
+        private void ShowAlreadyExistsLog()
+        {
+            var log = new System.Text.StringBuilder();
+            log.AppendLine("【提示】");
+            log.AppendLine($"域 '*@{domain}' 已在阻止发件人列表中");
+            log.AppendLine();
+            log.AppendLine("【注册表位置】");
+            log.AppendLine($"位置: {fullRegistryPath}");
+            log.AppendLine($"值名: {valueName}");
+
+            txtLog.Text = log.ToString();
+            SwitchToResultMode();
+        }
+
+        private void ShowErrorLog(string errorMessage)
+        {
+            var log = new System.Text.StringBuilder();
+            log.AppendLine("【操作失败】");
+            log.AppendLine($"错误: {errorMessage}");
+            log.AppendLine();
+            log.AppendLine("【手动添加步骤】");
+            log.AppendLine("1. 点击\"开始\"选项卡");
+            log.AppendLine("2. 点击\"删除\"组中的\"垃圾邮件\"");
+            log.AppendLine("3. 选择\"垃圾邮件选项\"");
+            log.AppendLine("4. 在\"阻止发件人\"选项卡中点击\"添加\"");
+            log.AppendLine($"5. 输入: *@{domain}");
+            log.AppendLine("6. 点击\"确定\"");
+
+            txtLog.Text = log.ToString();
+            SwitchToResultMode();
+        }
+
+        private void SwitchToResultMode()
+        {
+            // 隐藏确认和取消按钮
+            btnConfirm.Visible = false;
+            btnCancel.Visible = false;
+
+            // 显示复制和关闭按钮
+            btnCopy.Visible = true;
+            btnClose.Visible = true;
+            btnClose.Left = 230; // 调整关闭按钮位置
+
+            // 设置关闭按钮为默认按钮
             this.CancelButton = btnClose;
+            this.AcceptButton = btnClose;
+        }
+
+        private void BtnCancel_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.Cancel;
+            this.Close();
+        }
+
+        private void BtnCopy_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                Clipboard.SetText(txtLog.Text);
+                MessageBox.Show("日志已复制到剪贴板", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch { }
+        }
+
+        private void BtnClose_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.OK;
+            this.Close();
         }
     }
 
