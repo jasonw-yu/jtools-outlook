@@ -3300,6 +3300,9 @@ namespace jtools_outlook
 
         private void SwitchToResultMode()
         {
+            // 更新窗口标题
+            this.Text = $"JTools-outlook - 阻止域结果 *@{domain}";
+
             // 隐藏确认和取消按钮
             btnConfirm.Visible = false;
             btnCancel.Visible = false;
