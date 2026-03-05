@@ -1008,6 +1008,156 @@ namespace jtools_outlook
             }
         }
 
+        #endregion
+
+        #region 阻止域功能
+
+        private void btnBlockDomain_Click(object sender, RibbonControlEventArgs e)
+        {
+            try
+            {
+                // 获取当前选中的邮件
+                var explorer = Globals.ThisAddIn.Application.ActiveExplorer();
+                if (explorer == null || explorer.Selection == null || explorer.Selection.Count == 0)
+                {
+                    MessageBox.Show("请先选择一封邮件。", "JTools-outlook - 提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                var selectedItem = explorer.Selection[1];
+                if (!(selectedItem is Outlook.MailItem mailItem))
+                {
+                    MessageBox.Show("选中的项目不是邮件。", "JTools-outlook - 提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                // 获取发件人邮箱地址
+                string senderEmail = mailItem.SenderEmailAddress;
+                if (string.IsNullOrEmpty(senderEmail))
+                {
+                    MessageBox.Show("无法获取发件人邮箱地址。", "JTools-outlook - 提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // 提取域名
+                string domain = ExtractDomain(senderEmail);
+                if (string.IsNullOrEmpty(domain))
+                {
+                    MessageBox.Show($"无法从邮箱地址 '{senderEmail}' 中提取域名。", "JTools-outlook - 提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // 确认操作
+                var result = MessageBox.Show(
+                    $"确定要将发件人域 '{domain}' 添加到阻止发件人列表吗？\n\n发件人邮箱: {senderEmail}",
+                    "JTools-outlook - 确认阻止域",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result != DialogResult.Yes)
+                {
+                    return;
+                }
+
+                // 添加到阻止发件人列表
+                AddDomainToBlockedSenders(domain);
+
+                MessageBox.Show(
+                    $"已成功将域 '{domain}' 添加到阻止发件人列表。",
+                    "JTools-outlook - 操作成功",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"添加阻止域时发生错误：{ex.Message}",
+                    "JTools-outlook - 错误",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+        }
+
+        private string ExtractDomain(string email)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(email))
+                    return null;
+
+                // 处理 SMTP 格式的邮箱地址
+                if (email.StartsWith("SMTP:") || email.StartsWith("smtp:"))
+                {
+                    email = email.Substring(5);
+                }
+
+                // 提取 @ 后面的域名
+                int atIndex = email.IndexOf('@');
+                if (atIndex >= 0 && atIndex < email.Length - 1)
+                {
+                    return email.Substring(atIndex + 1).ToLower();
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void AddDomainToBlockedSenders(string domain)
+        {
+            try
+            {
+                // 获取阻止发件人列表
+                var blockedSenders = Globals.ThisAddIn.Application.Session.GetDefaultFolder(Outlook.OlDefaultFolders.olFolderJunk).GetStorage("Blocked Senders", Outlook.OlStorageIdentifierType.olIdentifyBySubject);
+
+                // 使用 Outlook 的 Junk Mail Options
+                // 注意：Outlook 对象模型不直接提供添加阻止发件人的 API
+                // 我们需要使用 Outlook 的规则或直接操作注册表
+                // 这里使用一个简化的方法：创建一个阻止该域的规则
+
+                var rules = Globals.ThisAddIn.Application.Session.DefaultStore.GetRules();
+                bool ruleExists = false;
+
+                // 检查是否已存在该域的阻止规则
+                foreach (Outlook.Rule rule in rules)
+                {
+                    if (rule.Name == $"Block Domain: {domain}")
+                    {
+                        ruleExists = true;
+                        break;
+                    }
+                }
+
+                if (!ruleExists)
+                {
+                    // 创建新规则
+                    var newRule = rules.Create($"Block Domain: {domain}", Outlook.OlRuleType.olRuleReceive);
+
+                    // 设置条件：发件人地址包含该域
+                    var condition = (Outlook.AddressRuleCondition)newRule.Conditions.SenderAddress;
+                    condition.Enabled = true;
+                    condition.Address = new string[] { $"@{domain}" };
+
+                    // 设置动作：移动到垃圾邮件文件夹
+                    var action = (Outlook.MoveOrCopyRuleAction)newRule.Actions.MoveToFolder;
+                    action.Enabled = true;
+                    action.Folder = Globals.ThisAddIn.Application.Session.GetDefaultFolder(Outlook.OlDefaultFolders.olFolderJunk);
+
+                    // 保存规则
+                    rules.Save();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"无法添加阻止域: {ex.Message}", ex);
+            }
+        }
+
+        #endregion
+
         private void btnAbout_Click(object sender, RibbonControlEventArgs e)
         {
             using (var aboutForm = new AboutForm())

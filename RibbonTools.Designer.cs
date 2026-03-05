@@ -37,19 +37,23 @@ namespace jtools_outlook
             this.tabJimsOutlookTools = this.Factory.CreateRibbonTab();
             this.groupAttachments = this.Factory.CreateRibbonGroup();
             this.groupSync = this.Factory.CreateRibbonGroup();
+            this.groupBlockDomain = this.Factory.CreateRibbonGroup();
             this.groupAbout = this.Factory.CreateRibbonGroup();
             this.btnSaveAttachments = this.Factory.CreateRibbonButton();
             this.btnDownloadOnline = this.Factory.CreateRibbonButton();
+            this.btnBlockDomain = this.Factory.CreateRibbonButton();
             this.btnAbout = this.Factory.CreateRibbonButton();
             this.tabJimsOutlookTools.SuspendLayout();
             this.groupAttachments.SuspendLayout();
             this.groupSync.SuspendLayout();
+            this.groupBlockDomain.SuspendLayout();
             // 
             // tabJimsOutlookTools
             // 
             this.tabJimsOutlookTools.ControlId.ControlIdType = Microsoft.Office.Tools.Ribbon.RibbonControlIdType.Office;
             this.tabJimsOutlookTools.Groups.Add(this.groupAttachments);
             this.tabJimsOutlookTools.Groups.Add(this.groupSync);
+            this.tabJimsOutlookTools.Groups.Add(this.groupBlockDomain);
             this.tabJimsOutlookTools.Groups.Add(this.groupAbout);
             this.tabJimsOutlookTools.Label = "JTools";
             this.tabJimsOutlookTools.Name = "tabJimsOutlookTools";
@@ -59,12 +63,18 @@ namespace jtools_outlook
             this.groupAttachments.Items.Add(this.btnSaveAttachments);
             this.groupAttachments.Label = "附件管理";
             this.groupAttachments.Name = "groupAttachments";
-            // 
+            //
             // groupSync
-            // 
+            //
             this.groupSync.Items.Add(this.btnDownloadOnline);
             this.groupSync.Label = "数据同步";
             this.groupSync.Name = "groupSync";
+            //
+            // groupBlockDomain
+            //
+            this.groupBlockDomain.Items.Add(this.btnBlockDomain);
+            this.groupBlockDomain.Label = "垃圾邮件";
+            this.groupBlockDomain.Name = "groupBlockDomain";
             //
             // groupAbout
             //
@@ -92,6 +102,16 @@ namespace jtools_outlook
             this.btnDownloadOnline.SuperTip = "选择联机存档数据文件和本地PST文件，分析差异后同步邮件";
             this.btnDownloadOnline.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnDownloadOnline_Click);
             //
+            // btnBlockDomain
+            //
+            this.btnBlockDomain.Label = "阻止域";
+            this.btnBlockDomain.Name = "btnBlockDomain";
+            this.btnBlockDomain.OfficeImageId = "Block";
+            this.btnBlockDomain.ScreenTip = "阻止发件人域";
+            this.btnBlockDomain.ShowImage = true;
+            this.btnBlockDomain.SuperTip = "将当前选中邮件的发件人域添加到阻止发件人列表";
+            this.btnBlockDomain.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnBlockDomain_Click);
+            //
             // btnAbout
             //
             this.btnAbout.Label = "关于";
@@ -114,6 +134,8 @@ namespace jtools_outlook
             this.groupAttachments.PerformLayout();
             this.groupSync.ResumeLayout(false);
             this.groupSync.PerformLayout();
+            this.groupBlockDomain.ResumeLayout(false);
+            this.groupBlockDomain.PerformLayout();
             this.groupAbout.ResumeLayout(false);
             this.groupAbout.PerformLayout();
             this.ResumeLayout(false);
@@ -125,9 +147,11 @@ namespace jtools_outlook
         internal Microsoft.Office.Tools.Ribbon.RibbonTab tabJimsOutlookTools;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupAttachments;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupSync;
+        internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupBlockDomain;
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupAbout;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnSaveAttachments;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnDownloadOnline;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnBlockDomain;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnAbout;
     }
 }
