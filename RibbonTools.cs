@@ -1186,7 +1186,7 @@ namespace jtools_outlook
                     mailItem.Move(junkFolder);
 
                     MessageBox.Show(
-                        $"已将当前邮件移动到垃圾邮件文件夹。\n\n由于 Outlook 限制，无法自动添加域到阻止发件人列表。\n\n请手动添加：\n1. 点击"开始"选项卡\n2. 点击"删除"组中的"垃圾邮件"\n3. 选择"垃圾邮件选项"\n4. 在"阻止发件人"选项卡中点击"添加"\n5. 输入: *@{domain}\n6. 点击"确定"",
+                        $"已将当前邮件移动到垃圾邮件文件夹。\n\n由于 Outlook 限制，无法自动添加域到阻止发件人列表。\n\n请手动添加：\n1. 点击\"开始\"选项卡\n2. 点击\"删除\"组中的\"垃圾邮件\"\n3. 选择\"垃圾邮件选项\"\n4. 在\"阻止发件人\"选项卡中点击\"添加\"\n5. 输入: *@{domain}\n6. 点击\"确定\"",
                         "JTools-outlook - 需要手动操作",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information);
