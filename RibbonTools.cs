@@ -1110,13 +1110,8 @@ namespace jtools_outlook
         {
             try
             {
-                // 获取阻止发件人列表
-                var blockedSenders = Globals.ThisAddIn.Application.Session.GetDefaultFolder(Outlook.OlDefaultFolders.olFolderJunk).GetStorage("Blocked Senders", Outlook.OlStorageIdentifierType.olIdentifyBySubject);
-
-                // 使用 Outlook 的 Junk Mail Options
-                // 注意：Outlook 对象模型不直接提供添加阻止发件人的 API
-                // 我们需要使用 Outlook 的规则或直接操作注册表
-                // 这里使用一个简化的方法：创建一个阻止该域的规则
+                // 使用 Outlook 规则来阻止该域
+                // 创建一个简单的规则：删除来自该域的邮件
 
                 var rules = Globals.ThisAddIn.Application.Session.DefaultStore.GetRules();
                 bool ruleExists = false;
@@ -1137,18 +1132,26 @@ namespace jtools_outlook
                     var newRule = rules.Create($"Block Domain: {domain}", Outlook.OlRuleType.olRuleReceive);
 
                     // 设置条件：发件人地址包含该域
-                    var condition = (Outlook.AddressRuleCondition)newRule.Conditions.SenderAddress;
-                    condition.Enabled = true;
-                    condition.Address = new string[] { $"@{domain}" };
+                    newRule.Conditions.SenderAddress.Enabled = true;
+                    newRule.Conditions.SenderAddress.Address = new string[] { $"@{domain}" };
 
-                    // 设置动作：移动到垃圾邮件文件夹
-                    var action = (Outlook.MoveOrCopyRuleAction)newRule.Actions.MoveToFolder;
-                    action.Enabled = true;
-                    action.Folder = Globals.ThisAddIn.Application.Session.GetDefaultFolder(Outlook.OlDefaultFolders.olFolderJunk);
+                    // 设置动作：永久删除
+                    newRule.Actions.Delete.Enabled = true;
+                    newRule.Actions.Delete.PermanentlyDelete = true;
 
                     // 保存规则
                     rules.Save();
+
+                    // 释放 COM 对象
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(newRule);
                 }
+
+                // 释放 COM 对象
+                foreach (Outlook.Rule rule in rules)
+                {
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(rule);
+                }
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(rules);
             }
             catch (Exception ex)
             {
