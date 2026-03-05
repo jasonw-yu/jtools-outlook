@@ -1117,6 +1117,34 @@ namespace jtools_outlook
                 string registryPath = @"Software\Microsoft\Office\16.0\Outlook\Options\Mail";
                 string valueName = "BlockedSenders";
                 string domainEntry = $"@{domain}";
+                string fullRegistryPath = $"HKEY_CURRENT_USER\\{registryPath}";
+
+                // 显示详细确认对话框
+                string confirmMessage = $"即将执行以下操作：\n\n" +
+                    $"【操作内容】\n" +
+                    $"将域 '*@{domain}' 添加到 Outlook 阻止发件人列表\n\n" +
+                    $"【注册表修改】\n" +
+                    $"位置: {fullRegistryPath}\n" +
+                    $"值名: {valueName}\n" +
+                    $"类型: REG_MULTI_SZ (多字符串值)\n" +
+                    $"添加内容: {domainEntry}\n\n" +
+                    $"【效果】\n" +
+                    $"• 来自该域的所有邮件将被自动移动到垃圾邮件文件夹\n" +
+                    $"• 当前邮件也会被移动到垃圾邮件文件夹\n" +
+                    $"• 可能需要重启 Outlook 使设置生效\n\n" +
+                    $"是否继续？";
+
+                var confirmResult = MessageBox.Show(
+                    confirmMessage,
+                    "JTools-outlook - 确认添加阻止域",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button2);
+
+                if (confirmResult != DialogResult.Yes)
+                {
+                    return;
+                }
 
                 try
                 {
@@ -1166,7 +1194,12 @@ namespace jtools_outlook
                         }
 
                         MessageBox.Show(
-                            $"已将域 '*@{domain}' 添加到阻止发件人列表。\n\n来自该域的所有邮件将被自动移动到垃圾邮件文件夹。\n\n注意：可能需要重启 Outlook 使设置生效。",
+                            $"操作成功！\n\n" +
+                            $"已将域 '*@{domain}' 添加到阻止发件人列表。\n\n" +
+                            $"注册表位置: {fullRegistryPath}\n" +
+                            $"值名: {valueName}\n\n" +
+                            $"来自该域的所有邮件将被自动移动到垃圾邮件文件夹。\n\n" +
+                            $"注意：可能需要重启 Outlook 使设置生效。",
                             "JTools-outlook - 操作成功",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Information);
@@ -1175,7 +1208,9 @@ namespace jtools_outlook
                     {
                         key.Close();
                         MessageBox.Show(
-                            $"域 '*@{domain}' 已在阻止发件人列表中。",
+                            $"域 '*@{domain}' 已在阻止发件人列表中。\n\n" +
+                            $"注册表位置: {fullRegistryPath}\n" +
+                            $"值名: {valueName}",
                             "JTools-outlook - 提示",
                             MessageBoxButtons.OK,
                             MessageBoxIcon.Information);
