@@ -1181,7 +1181,7 @@ namespace jtools_outlook
                             MessageBoxIcon.Information);
                     }
                 }
-                catch (Exception regEx)
+                catch (Exception)
                 {
                     // 如果注册表方法失败，提示用户手动添加
                     var explorer = Globals.ThisAddIn.Application.ActiveExplorer();
