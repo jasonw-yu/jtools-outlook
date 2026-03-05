@@ -1047,26 +1047,8 @@ namespace jtools_outlook
                     return;
                 }
 
-                // 确认操作
-                var result = MessageBox.Show(
-                    $"确定要将发件人域 '{domain}' 添加到阻止发件人列表吗？\n\n发件人邮箱: {senderEmail}",
-                    "JTools-outlook - 确认阻止域",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-
-                if (result != DialogResult.Yes)
-                {
-                    return;
-                }
-
-                // 添加到阻止发件人列表
+                // 添加到阻止发件人列表（对话框内部会处理确认和结果显示）
                 AddDomainToBlockedSenders(domain);
-
-                MessageBox.Show(
-                    $"已成功将域 '{domain}' 添加到阻止发件人列表。",
-                    "JTools-outlook - 操作成功",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
