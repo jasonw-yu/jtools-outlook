@@ -1158,6 +1158,8 @@ namespace jtools_outlook
 
         #endregion
 
+        #region 关于功能
+
         private void btnAbout_Click(object sender, RibbonControlEventArgs e)
         {
             using (var aboutForm = new AboutForm())
