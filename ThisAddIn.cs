@@ -3182,6 +3182,9 @@ namespace jtools_outlook
 
         private void BtnConfirm_Click(object sender, EventArgs e)
         {
+            // 添加调试信息
+            System.Diagnostics.Debug.WriteLine("=== 点击了确认执行按钮 ===");
+
             try
             {
                 // 执行注册表操作
@@ -3319,6 +3322,10 @@ namespace jtools_outlook
 
         private void BtnCancel_Click(object sender, EventArgs e)
         {
+            // 添加调试信息
+            System.Diagnostics.Debug.WriteLine("=== 点击了取消按钮 ===");
+
+            // 点击取消按钮，直接关闭对话框，不执行任何操作
             this.DialogResult = DialogResult.Cancel;
             this.Close();
         }
