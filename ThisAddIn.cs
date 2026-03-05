@@ -3238,7 +3238,7 @@ namespace jtools_outlook
                     ShowAlreadyExistsLog();
                 }
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 ShowErrorLog(ex.Message);
             }
