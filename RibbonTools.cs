@@ -11,7 +11,7 @@ namespace jtools_outlook
 {
     public partial class RibbonTools
     {
-        private const string AppVersion = "v1.0.6";
+        private const string AppVersion = "v1.0.7";
 
         private void RibbonTools_Load(object sender, RibbonUIEventArgs e)
         {
