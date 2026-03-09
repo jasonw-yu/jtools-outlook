@@ -1,6 +1,6 @@
 # JTools
 
-[![版本](https://img.shields.io/badge/版本-v1.0.8-blue)](https://gitee.com/jasonw-yu/jtools-outlook)
+[![版本](https://img.shields.io/badge/版本-v1.0.9-blue)](https://gitee.com/jasonw-yu/jtools-outlook)
 [![协议](https://img.shields.io/badge/协议-MIT-green)](LICENSE)
 
 > ⚠️ **Vibe Coding 警告**
@@ -30,10 +30,10 @@
 - 📊 **进度显示**：实时显示同步进度，支持中途取消
 - 🛡️ **错误隔离**：个别邮件同步失败不影响整体流程
 
-### 阻止域
-- 🚫 **阻止发件人域**：将选中邮件的发件人域添加到 Outlook 阻止发件人列表
+### 阻止
+- 🚫 **阻止发件人或发件人域**：选择阻止当前发件人或发件人域
 - 📝 **注册表修改**：通过修改注册表实现阻止功能
-- 🗑️ **自动移动**：来自该域的所有邮件将被自动移动到垃圾邮件文件夹
+- 🗑️ **自动移动**：来自该发件人或域的邮件将被自动移动到垃圾邮件文件夹
 - ✅ **确认对话框**：显示详细的操作信息和注册表修改位置，用户确认后执行
 
 ### 带附件全部答复
