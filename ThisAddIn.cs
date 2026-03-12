@@ -579,7 +579,7 @@ namespace jtools_outlook
             // 版权信息
             var lblCopyright = new Label
             {
-                Text = "Copyright © 2025 Jim\n基于 MIT 协议开源",
+                Text = "Copyright © 2025 Jason\n基于 MIT 协议开源",
                 Dock = DockStyle.Fill,
                 TextAlign = System.Drawing.ContentAlignment.MiddleCenter,
                 Font = new System.Drawing.Font("Microsoft Sans Serif", 8),
@@ -678,7 +678,7 @@ namespace jtools_outlook
 
         private void InitializeComponent()
         {
-            this.Text = "下载联机存档 - JTools-outlook v1.1.1";
+            this.Text = "下载联机存档";
             this.Width = 750;
             this.Height = 650;
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -1859,7 +1859,7 @@ namespace jtools_outlook
 
         private void InitializeComponent()
         {
-            this.Text = "导入邮件 - JTools-outlook v1.1.1";
+            this.Text = "导入邮件";
             this.Width = 600;
             this.Height = 500;
             this.StartPosition = FormStartPosition.CenterScreen;
