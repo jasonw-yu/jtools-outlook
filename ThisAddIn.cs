@@ -506,6 +506,11 @@ namespace jtools_outlook
         public Outlook.Store Store { get; set; }
         public string DisplayName { get; set; }
         public bool IsArchive { get; set; }
+
+        public override string ToString()
+        {
+            return DisplayName ?? "未知数据文件";
+        }
     }
 
     /// <summary>
@@ -655,7 +660,6 @@ namespace jtools_outlook
         private TextBox txtTargetFolder;
         private Button btnBrowseFolder;
         private ProgressBar progressBar;
-        private Label lblStatus;
         private Label lblProgress;
         private TextBox txtLog;
         private Button btnStart;
@@ -775,15 +779,7 @@ namespace jtools_outlook
             });
 
             // 进度面板
-            progressPanel = new Panel { Dock = DockStyle.Top, Height = 80, Margin = new Padding(0, 10, 0, 0) };
-
-            lblStatus = new Label
-            {
-                Text = "就绪",
-                Dock = DockStyle.Top,
-                Height = 25,
-                Font = new Font("Microsoft YaHei", 9)
-            };
+            progressPanel = new Panel { Dock = DockStyle.Top, Height = 55, Margin = new Padding(0, 10, 0, 0) };
 
             progressBar = new ProgressBar
             {
@@ -802,7 +798,7 @@ namespace jtools_outlook
                 Font = new Font("Microsoft YaHei", 9, FontStyle.Bold)
             };
 
-            progressPanel.Controls.AddRange(new Control[] { lblProgress, progressBar, lblStatus });
+            progressPanel.Controls.AddRange(new Control[] { lblProgress, progressBar });
 
             // 日志面板
             var logPanel = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 10, 0, 0) };
@@ -836,7 +832,8 @@ namespace jtools_outlook
                 Width = 100,
                 Height = 32,
                 Left = 15,
-                Top = 9
+                Top = 9,
+                Enabled = false  // 初始禁用，分析完成后启用
             };
             btnStart.Click += BtnStart_Click;
 
@@ -980,6 +977,12 @@ namespace jtools_outlook
                 }
 
                 AddLog($"分析完成，共发现 {_yearStats.Count} 个年份");
+                
+                // 分析完成后启用开始下载按钮
+                if (_yearStats.Count > 0)
+                {
+                    btnStart.Enabled = true;
+                }
             }
             catch (System.Exception ex)
             {
@@ -1433,6 +1436,9 @@ namespace jtools_outlook
                 btnBrowseFolder.Enabled = true;
                 _cancellationTokenSource?.Dispose();
                 _cancellationTokenSource = null;
+
+                // 显示完成提示 - 不再调用 UpdateProgress，保持最后的状态
+                MessageBox.Show("下载完成！", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
@@ -1456,29 +1462,30 @@ namespace jtools_outlook
             int totalDownloaded = 0;
             int totalSkipped = 0;
 
+            // 在主线程获取文件夹 EntryID（不传递 COM 对象）
+            var folderEntryIds = new List<(string EntryId, string StoreId, string FolderName)>();
+            string storeId = sourceStore.StoreID;
+
             try
             {
-                // 获取源文件夹
-                var sourceFolders = new List<Outlook.MAPIFolder>();
-                var folderNames = new List<string>();
-
+                // 获取源文件夹 EntryID
                 var sourceInbox = FindFolder(sourceStore, "收件箱", "Inbox");
                 if (sourceInbox != null)
                 {
-                    sourceFolders.Add(sourceInbox);
-                    folderNames.Add("收件箱");
+                    folderEntryIds.Add((sourceInbox.EntryID, storeId, "收件箱"));
                     AddLog($"找到收件箱: {sourceInbox.Name}");
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(sourceInbox);
                 }
 
                 var sourceSent = FindFolder(sourceStore, "已发送邮件", "Sent Items", "已发送");
                 if (sourceSent != null)
                 {
-                    sourceFolders.Add(sourceSent);
-                    folderNames.Add("已发送邮件");
+                    folderEntryIds.Add((sourceSent.EntryID, storeId, "已发送邮件"));
                     AddLog($"找到已发送: {sourceSent.Name}");
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(sourceSent);
                 }
 
-                if (sourceFolders.Count == 0)
+                if (folderEntryIds.Count == 0)
                 {
                     AddLog("未找到可下载的文件夹");
                     return;
@@ -1501,13 +1508,10 @@ namespace jtools_outlook
                     }
 
                     // 处理每个源文件夹
-                    for (int i = 0; i < sourceFolders.Count; i++)
+                    foreach (var (folderEntryId, folderStoreId, folderName) in folderEntryIds)
                     {
                         if (cancellationToken.IsCancellationRequested)
                             break;
-
-                        var sourceFolder = sourceFolders[i];
-                        var folderName = folderNames[i];
 
                         // 创建子文件夹
                         string subFolder = Path.Combine(yearFolder, folderName);
@@ -1521,9 +1525,10 @@ namespace jtools_outlook
                         int yearDownloaded = 0;
                         int yearSkipped = 0;
 
+                        // 传递 EntryID 到后台线程
                         await Task.Run(() =>
                         {
-                            DownloadFolderToFiles(sourceFolder, year, subFolder, cancellationToken,
+                            DownloadFolderToFilesByEntryId(folderEntryId, folderStoreId, year, subFolder, cancellationToken,
                                 ref yearDownloaded, ref yearSkipped);
                         }, cancellationToken);
 
@@ -1539,52 +1544,87 @@ namespace jtools_outlook
                     if (cancellationToken.IsCancellationRequested)
                         break;
                 }
-
-                // 释放源文件夹
-                foreach (var folder in sourceFolders)
-                {
-                    System.Runtime.InteropServices.Marshal.ReleaseComObject(folder);
-                }
             }
             finally
             {
                 AddLog($"");
                 AddLog($"========== 下载完成 ==========");
                 AddLog($"总计: 下载 {totalDownloaded} 封，跳过 {totalSkipped} 封");
+                
+                // 更新状态显示为最终结果
+                UpdateProgress(0, 0, totalDownloaded, totalSkipped, 0, "完成");
             }
         }
 
-        private void DownloadFolderToFiles(Outlook.MAPIFolder sourceFolder, int year, string targetPath,
+        /// <summary>
+        /// 通过 EntryID 在后台线程获取文件夹并下载邮件
+        /// </summary>
+        private void DownloadFolderToFilesByEntryId(string folderEntryId, string storeId, int year, string targetPath,
             CancellationToken cancellationToken, ref int downloadedCount, ref int skippedCount)
         {
+            Outlook.NameSpace ns = null;
+            Outlook.MAPIFolder folder = null;
+
             try
             {
+                AddLog("[后台] 开始获取文件夹...");
+
+                // 使用现有的 Application 实例（通过 GetNamespace 获取）
+                ns = Globals.ThisAddIn.Application.GetNamespace("MAPI");
+
+                AddLog("[后台] 正在通过 EntryID 获取文件夹...");
+
+                // 通过 EntryID 获取文件夹
+                folder = ns.GetFolderFromID(folderEntryId, storeId);
+                if (folder == null)
+                {
+                    AddLog($"无法获取文件夹: {folderEntryId}");
+                    return;
+                }
+
+                AddLog($"[后台] 成功获取文件夹: {folder.Name}");
+
                 // 使用 Restrict 过滤该年份的邮件
                 string filter = $"[ReceivedTime] >= '{year}/1/1' AND [ReceivedTime] < '{year + 1}/1/1'";
-                var items = sourceFolder.Items.Restrict(filter);
-                items.Sort("[ReceivedTime]", true);
+                var filteredItems = folder.Items.Restrict(filter);
+                int total = filteredItems.Count;
 
-                int total = items.Count;
+                AddLog($"[后台] {folder.Name} {year}年共 {total} 封邮件");
+
+                if (total == 0)
+                {
+                    AddLog($"[后台] 没有需要下载的邮件");
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(filteredItems);
+                    return;
+                }
+
                 int processed = 0;
                 int batchSize = 20;
 
+                // 直接遍历过滤后的邮件
                 for (int i = 1; i <= total; i++)
                 {
                     if (cancellationToken.IsCancellationRequested)
                         break;
 
                     object item = null;
+                    Outlook.MailItem mailItem = null;
+
                     try
                     {
-                        item = items[i];
+                        item = filteredItems[i];
                         processed++;
 
                         if (item is Outlook.MailItem mail)
                         {
-                            string entryId = mail.EntryID;
+                            mailItem = mail;
 
-                            // 检查是否已下载（通过检查文件是否存在）
-                            string safeSubject = GetSafeFileName(mail.Subject, entryId);
+                            // 获取邮件信息
+                            string subject = mailItem.Subject;
+                            DateTime receivedTime = mailItem.ReceivedTime;
+
+                            // 使用精确时间戳生成文件名
+                            string safeSubject = GetSafeFileNameWithTimestamp(subject, receivedTime);
                             string filePath = Path.Combine(targetPath, safeSubject + ".msg");
 
                             if (File.Exists(filePath))
@@ -1593,18 +1633,22 @@ namespace jtools_outlook
                             }
                             else
                             {
-                                // 保存邮件为 .msg 文件
-                                mail.SaveAs(filePath);
+                                // 保存邮件
+                                mailItem.SaveAs(filePath);
                                 downloadedCount++;
                             }
-
-                            System.Runtime.InteropServices.Marshal.ReleaseComObject(mail);
                         }
 
                         // 更新进度
                         if (processed % 10 == 0)
                         {
                             UpdateProgress(processed, total, downloadedCount, skippedCount, year, "下载中");
+                        }
+
+                        // 每处理50封输出一次日志
+                        if (processed % 50 == 0)
+                        {
+                            AddLog($"[下载] 已处理 {processed}/{total}，下载 {downloadedCount}，跳过 {skippedCount}");
                         }
 
                         // 批次间让出线程
@@ -1615,23 +1659,59 @@ namespace jtools_outlook
                     }
                     catch (System.Exception ex)
                     {
-                        AddLog($"保存邮件失败: {ex.Message}");
+                        AddLog($"处理邮件失败: {ex.Message}");
                     }
                     finally
                     {
-                        if (item != null)
+                        if (mailItem != null)
+                        {
+                            System.Runtime.InteropServices.Marshal.ReleaseComObject(mailItem);
+                            mailItem = null;
+                        }
+                        if (item != null && item != mailItem)
                         {
                             try { System.Runtime.InteropServices.Marshal.ReleaseComObject(item); } catch { }
                         }
                     }
                 }
 
-                System.Runtime.InteropServices.Marshal.ReleaseComObject(items);
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(filteredItems);
             }
             catch (System.Exception ex)
             {
                 AddLog($"下载文件夹失败: {ex.Message}");
             }
+            finally
+            {
+                // 释放 COM 对象
+                if (folder != null)
+                {
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(folder);
+                    folder = null;
+                }
+                if (ns != null)
+                {
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(ns);
+                    ns = null;
+                }
+            }
+        }
+
+        private string GetSafeFileNameWithTimestamp(string subject, DateTime receivedTime)
+        {
+            // 移除非法字符
+            string safeName = subject ?? "无主题";
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                safeName = safeName.Replace(c, '_');
+            }
+            if (safeName.Length > 100)
+            {
+                safeName = safeName.Substring(0, 100);
+            }
+            // 使用精确时间戳（精确到秒）作为唯一标识
+            string timestamp = receivedTime.ToString("yyyyMMdd_HHmmss");
+            return $"{safeName}_{timestamp}";
         }
 
         private string GetSafeFileName(string subject, string entryId)
@@ -1642,14 +1722,22 @@ namespace jtools_outlook
             {
                 safeName = safeName.Replace(c, '_');
             }
-            // 限制长度并添加 EntryID 后缀确保唯一性
+            // 限制长度
             if (safeName.Length > 100)
             {
                 safeName = safeName.Substring(0, 100);
             }
-            // 使用 EntryID 的前8位作为后缀确保唯一性
-            string suffix = entryId?.Length > 8 ? entryId.Substring(0, 8) : entryId ?? Guid.NewGuid().ToString().Substring(0, 8);
-            return $"{safeName}_{suffix}";
+            // EntryID 是 Outlook MAPI 的核心标识符，正常邮件一定有
+            // 使用前8位作为后缀确保唯一性
+            if (!string.IsNullOrEmpty(entryId) && entryId.Length >= 8)
+            {
+                return $"{safeName}_{entryId.Substring(0, 8)}";
+            }
+            else
+            {
+                // EntryID 获取失败时，使用 GUID 确保唯一性
+                return $"{safeName}_{Guid.NewGuid().ToString("N").Substring(0, 8)}";
+            }
         }
 
         private void UpdateProgress(int processed, int total, int downloaded, int skipped, int year, string stage = "")
@@ -1663,8 +1751,6 @@ namespace jtools_outlook
             int percent = total > 0 ? (int)((double)processed / total * 100) : 0;
             progressBar.Value = Math.Min(percent, 100);
             lblProgress.Text = $"{processed} / {total} ({percent}%)";
-            string stageText = string.IsNullOrEmpty(stage) ? "" : $"[{stage}] ";
-            lblStatus.Text = $"{stageText}{year}年 - 已下载: {downloaded}，跳过: {skipped}";
         }
     }
 
@@ -1735,6 +1821,515 @@ namespace jtools_outlook
             this.Controls.Add(tableLayout);
             this.AcceptButton = btnOK;
             this.CancelButton = btnCancel;
+        }
+    }
+
+    #endregion
+
+    #region 导入邮件功能
+
+    /// <summary>
+    /// 导入邮件窗体
+    /// </summary>
+    public class ImportEmailsForm : Form
+    {
+        private Outlook.Application _application;
+        private CancellationTokenSource _cancellationTokenSource;
+        private bool _isRunning = false;
+
+        // UI 控件
+        private TextBox txtSourceFolder;
+        private Button btnBrowseSource;
+        private ComboBox cmbTargetStore;
+        private ComboBox cmbTargetFolder;
+        private ProgressBar progressBar;
+        private Label lblStatus;
+        private Label lblProgress;
+        private TextBox txtLog;
+        private Button btnStart;
+        private Button btnCancel;
+        private Button btnClose;
+
+        public ImportEmailsForm(Outlook.Application application)
+        {
+            _application = application;
+            InitializeComponent();
+            LoadStores();
+        }
+
+        private void InitializeComponent()
+        {
+            this.Text = "导入邮件 - JTools-outlook v1.1.1";
+            this.Width = 600;
+            this.Height = 500;
+            this.StartPosition = FormStartPosition.CenterScreen;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.MaximizeBox = false;
+            this.MinimumSize = new Size(500, 400);
+
+            var mainPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(15) };
+
+            // 源文件夹选择
+            var lblSource = new Label
+            {
+                Text = "源文件夹（包含.msg文件）:",
+                Dock = DockStyle.Top,
+                Height = 25
+            };
+
+            var sourcePanel = new Panel { Dock = DockStyle.Top, Height = 32 };
+            txtSourceFolder = new TextBox { Dock = DockStyle.Fill, Height = 28 };
+            btnBrowseSource = new Button { Text = "浏览...", Width = 80, Height = 28, Dock = DockStyle.Right };
+            btnBrowseSource.Click += BtnBrowseSource_Click;
+            sourcePanel.Controls.Add(txtSourceFolder);
+            sourcePanel.Controls.Add(btnBrowseSource);
+
+            // 目标PST选择
+            var lblTargetStore = new Label
+            {
+                Text = "目标PST文件:",
+                Dock = DockStyle.Top,
+                Height = 25,
+                Margin = new Padding(0, 10, 0, 0)
+            };
+
+            cmbTargetStore = new ComboBox
+            {
+                Dock = DockStyle.Top,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Height = 28
+            };
+            cmbTargetStore.SelectedIndexChanged += CmbTargetStore_SelectedIndexChanged;
+
+            // 目标文件夹选择
+            var lblTargetFolder = new Label
+            {
+                Text = "目标文件夹:",
+                Dock = DockStyle.Top,
+                Height = 25,
+                Margin = new Padding(0, 10, 0, 0)
+            };
+
+            cmbTargetFolder = new ComboBox
+            {
+                Dock = DockStyle.Top,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Height = 28
+            };
+
+            // 进度面板
+            var progressPanel = new Panel { Dock = DockStyle.Top, Height = 80, Margin = new Padding(0, 10, 0, 0) };
+
+            lblStatus = new Label { Text = "就绪", Dock = DockStyle.Top, Height = 25 };
+            progressBar = new ProgressBar { Dock = DockStyle.Top, Height = 25, Minimum = 0, Maximum = 100 };
+            lblProgress = new Label { Text = "0 / 0 (0%)", Dock = DockStyle.Top, Height = 25, TextAlign = ContentAlignment.MiddleCenter };
+
+            progressPanel.Controls.AddRange(new Control[] { lblProgress, progressBar, lblStatus });
+
+            // 日志面板
+            var logPanel = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0, 10, 0, 0) };
+            var lblLog = new Label { Text = "操作日志", Dock = DockStyle.Top, Height = 25 };
+            txtLog = new TextBox
+            {
+                Dock = DockStyle.Fill,
+                Multiline = true,
+                ScrollBars = ScrollBars.Vertical,
+                ReadOnly = true,
+                BackColor = Color.WhiteSmoke
+            };
+            logPanel.Controls.AddRange(new Control[] { txtLog, lblLog });
+
+            // 按钮面板
+            var buttonPanel = new Panel { Dock = DockStyle.Bottom, Height = 50 };
+            btnStart = new Button { Text = "开始导入", Width = 100, Height = 32, Left = 15, Top = 9 };
+            btnStart.Click += BtnStart_Click;
+            btnCancel = new Button { Text = "取消", Width = 80, Height = 32, Left = 125, Top = 9, Enabled = false };
+            btnCancel.Click += BtnCancel_Click;
+            btnClose = new Button { Text = "关闭", Width = 80, Height = 32, Left = 480, Top = 9, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            btnClose.Click += (s, e) => this.Close();
+            buttonPanel.Controls.AddRange(new Control[] { btnStart, btnCancel, btnClose });
+
+            mainPanel.Controls.AddRange(new Control[] { logPanel, progressPanel });
+            mainPanel.Controls.AddRange(new Control[] { cmbTargetFolder, lblTargetFolder, cmbTargetStore, lblTargetStore, sourcePanel, lblSource });
+            this.Controls.AddRange(new Control[] { mainPanel, buttonPanel });
+        }
+
+        private void BtnBrowseSource_Click(object sender, EventArgs e)
+        {
+            using (var dialog = new FolderBrowserDialog())
+            {
+                dialog.Description = "选择包含.msg文件的源文件夹";
+                if (!string.IsNullOrEmpty(txtSourceFolder.Text) && Directory.Exists(txtSourceFolder.Text))
+                {
+                    dialog.SelectedPath = txtSourceFolder.Text;
+                }
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    txtSourceFolder.Text = dialog.SelectedPath;
+                }
+            }
+        }
+
+        private void LoadStores()
+        {
+            try
+            {
+                cmbTargetStore.Items.Clear();
+                foreach (Outlook.Store store in _application.Session.Stores)
+                {
+                    try
+                    {
+                        // 只显示本地PST文件
+                        if (store.ExchangeStoreType == Outlook.OlExchangeStoreType.olNotExchange ||
+                            store.ExchangeStoreType == Outlook.OlExchangeStoreType.olPrimaryExchangeMailbox)
+                        {
+                            var info = new StoreInfo
+                            {
+                                Store = store,
+                                DisplayName = store.DisplayName,
+                                IsArchive = false
+                            };
+                            cmbTargetStore.Items.Add(info);
+                        }
+                    }
+                    catch { }
+                }
+
+                if (cmbTargetStore.Items.Count > 0)
+                {
+                    cmbTargetStore.SelectedIndex = 0;
+                }
+
+                AddLog($"已加载 {cmbTargetStore.Items.Count} 个本地PST文件");
+            }
+            catch (System.Exception ex)
+            {
+                AddLog($"加载PST文件失败: {ex.Message}");
+            }
+        }
+
+        private void CmbTargetStore_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            LoadFolders();
+        }
+
+        private void LoadFolders()
+        {
+            try
+            {
+                cmbTargetFolder.Items.Clear();
+                var storeInfo = cmbTargetStore.SelectedItem as StoreInfo;
+                if (storeInfo?.Store == null) return;
+
+                var rootFolder = storeInfo.Store.GetRootFolder();
+                AddFoldersToList(rootFolder, "");
+                System.Runtime.InteropServices.Marshal.ReleaseComObject(rootFolder);
+
+                if (cmbTargetFolder.Items.Count > 0)
+                {
+                    cmbTargetFolder.SelectedIndex = 0;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                AddLog($"加载文件夹失败: {ex.Message}");
+            }
+        }
+
+        private void AddFoldersToList(Outlook.MAPIFolder folder, string path)
+        {
+            try
+            {
+                var folderInfo = new FolderInfo { Folder = folder, DisplayPath = string.IsNullOrEmpty(path) ? folder.Name : $"{path}\\{folder.Name}" };
+                cmbTargetFolder.Items.Add(folderInfo);
+
+                foreach (Outlook.MAPIFolder subFolder in folder.Folders)
+                {
+                    AddFoldersToList(subFolder, folderInfo.DisplayPath);
+                }
+            }
+            catch { }
+        }
+
+        private void AddLog(string message)
+        {
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new System.Action(() => AddLog(message)));
+                return;
+            }
+
+            string timestamp = DateTime.Now.ToString("HH:mm:ss");
+            txtLog.AppendText($"[{timestamp}] {message}\r\n");
+            txtLog.SelectionStart = txtLog.Text.Length;
+            txtLog.ScrollToCaret();
+        }
+
+        private async void BtnStart_Click(object sender, EventArgs e)
+        {
+            if (_isRunning) return;
+
+            if (string.IsNullOrWhiteSpace(txtSourceFolder.Text) || !Directory.Exists(txtSourceFolder.Text))
+            {
+                MessageBox.Show("请选择有效的源文件夹", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var storeInfo = cmbTargetStore.SelectedItem as StoreInfo;
+            if (storeInfo?.Store == null)
+            {
+                MessageBox.Show("请选择目标PST文件", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            var folderInfo = cmbTargetFolder.SelectedItem as FolderInfo;
+            if (folderInfo?.Folder == null)
+            {
+                MessageBox.Show("请选择目标文件夹", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            _isRunning = true;
+            btnStart.Enabled = false;
+            btnCancel.Enabled = true;
+            cmbTargetStore.Enabled = false;
+            cmbTargetFolder.Enabled = false;
+            btnBrowseSource.Enabled = false;
+
+            _cancellationTokenSource = new CancellationTokenSource();
+
+            try
+            {
+                string storeId = storeInfo.Store.StoreID;
+                string folderId = folderInfo.Folder.EntryID;
+                string sourcePath = txtSourceFolder.Text;
+
+                await Task.Run(() => ImportEmailsAsync(storeId, folderId, sourcePath, _cancellationTokenSource.Token));
+            }
+            catch (OperationCanceledException)
+            {
+                AddLog("导入已取消");
+            }
+            catch (System.Exception ex)
+            {
+                AddLog($"导入失败: {ex.Message}");
+            }
+            finally
+            {
+                _isRunning = false;
+                btnStart.Enabled = true;
+                btnCancel.Enabled = false;
+                cmbTargetStore.Enabled = true;
+                cmbTargetFolder.Enabled = true;
+                btnBrowseSource.Enabled = true;
+                _cancellationTokenSource?.Dispose();
+                _cancellationTokenSource = null;
+            }
+        }
+
+        private void BtnCancel_Click(object sender, EventArgs e)
+        {
+            if (_cancellationTokenSource != null && !_cancellationTokenSource.IsCancellationRequested)
+            {
+                _cancellationTokenSource.Cancel();
+                AddLog("正在取消导入...");
+                btnCancel.Enabled = false;
+            }
+        }
+
+        private void ImportEmailsAsync(string storeId, string folderId, string sourcePath, CancellationToken cancellationToken)
+        {
+            int imported = 0;
+            int skipped = 0;
+            int failed = 0;
+
+            try
+            {
+                var msgFiles = Directory.GetFiles(sourcePath, "*.msg", SearchOption.TopDirectoryOnly);
+                int total = msgFiles.Length;
+
+                AddLog($"找到 {total} 个.msg文件");
+
+                if (total == 0)
+                {
+                    AddLog("没有找到可导入的邮件文件");
+                    return;
+                }
+
+                Outlook.NameSpace ns = null;
+                Outlook.MAPIFolder targetFolder = null;
+
+                try
+                {
+                    ns = _application.GetNamespace("MAPI");
+                    targetFolder = ns.GetFolderFromID(folderId, storeId);
+
+                    if (targetFolder == null)
+                    {
+                        AddLog("无法获取目标文件夹");
+                        return;
+                    }
+
+                    // 初始化：扫描目标文件夹，建立已存在邮件的 Message-ID 集合
+                    AddLog("正在扫描目标文件夹中的已有邮件...");
+                    var existingMessageIds = new HashSet<string>();
+                    var items = targetFolder.Items;
+                    int scannedCount = 0;
+                    
+                    foreach (object item in items)
+                    {
+                        if (item is Outlook.MailItem existingMail)
+                        {
+                            try
+                            {
+                                string existingMessageId = GetMessageId(existingMail);
+                                if (!string.IsNullOrEmpty(existingMessageId))
+                                {
+                                    existingMessageIds.Add(existingMessageId);
+                                }
+                            }
+                            catch { }
+                            System.Runtime.InteropServices.Marshal.ReleaseComObject(existingMail);
+                            scannedCount++;
+                        }
+                    }
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(items);
+                    
+                    AddLog($"目标文件夹已有 {existingMessageIds.Count} 封邮件（共扫描 {scannedCount} 封）");
+
+                    // 遍历待导入文件
+                    for (int i = 0; i < msgFiles.Length; i++)
+                    {
+                        if (cancellationToken.IsCancellationRequested)
+                            break;
+
+                        string file = msgFiles[i];
+                        try
+                        {
+                            var mailItem = _application.Session.OpenSharedItem(file) as Outlook.MailItem;
+                            if (mailItem != null)
+                            {
+                                // 获取 Message-ID
+                                string messageId = GetMessageId(mailItem);
+
+                                bool exists = false;
+                                if (!string.IsNullOrEmpty(messageId) && existingMessageIds.Contains(messageId))
+                                {
+                                    exists = true;
+                                }
+
+                                if (exists)
+                                {
+                                    skipped++;
+                                }
+                                else
+                                {
+                                    mailItem.Move(targetFolder);
+                                    imported++;
+                                    
+                                    // 将新导入的 Message-ID 添加到集合中
+                                    if (!string.IsNullOrEmpty(messageId))
+                                    {
+                                        existingMessageIds.Add(messageId);
+                                    }
+                                }
+                                System.Runtime.InteropServices.Marshal.ReleaseComObject(mailItem);
+                            }
+                        }
+                        catch (System.Exception ex)
+                        {
+                            failed++;
+                            if (failed <= 5)
+                            {
+                                AddLog($"导入失败 ({Path.GetFileName(file)}): {ex.Message}");
+                            }
+                        }
+
+                        // 更新进度（每处理一封或每10封更新一次）
+                        if ((i + 1) % 10 == 0 || i + 1 == total)
+                        {
+                            UpdateProgress(i + 1, total, imported, skipped, failed);
+                        }
+
+                        Thread.Sleep(10);
+                    }
+
+                    System.Runtime.InteropServices.Marshal.ReleaseComObject(targetFolder);
+                }
+                finally
+                {
+                    if (ns != null)
+                        System.Runtime.InteropServices.Marshal.ReleaseComObject(ns);
+                }
+
+                AddLog($"导入完成: 成功 {imported}，跳过 {skipped}，失败 {failed}");
+            }
+            catch (System.Exception ex)
+            {
+                AddLog($"导入过程出错: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 获取邮件的 Message-ID，并进行标准化处理
+        /// </summary>
+        private string GetMessageId(Outlook.MailItem mail)
+        {
+            try
+            {
+                string messageId = mail.PropertyAccessor.GetProperty("http://schemas.microsoft.com/mapi/proptag/0x1035001F")?.ToString() ?? "";
+                
+                if (string.IsNullOrEmpty(messageId))
+                {
+                    // 如果无法获取 Message-ID，使用主题+发件人+时间作为备选
+                    messageId = $"{mail.Subject}_{mail.SenderName}_{mail.ReceivedTime:yyyyMMddHHmmss}";
+                }
+                
+                // 标准化处理：去除尖括号和空白
+                messageId = messageId.Trim().TrimStart('<').TrimEnd('>');
+                
+                return messageId;
+            }
+            catch
+            {
+                // 回退方案：使用主题+发件人+时间
+                try
+                {
+                    return $"{mail.Subject}_{mail.SenderName}_{mail.ReceivedTime:yyyyMMddHHmmss}".Trim();
+                }
+                catch
+                {
+                    return "";
+                }
+            }
+        }
+
+        private void UpdateProgress(int processed, int total, int imported, int skipped, int failed)
+        {
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new System.Action(() => UpdateProgress(processed, total, imported, skipped, failed)));
+                return;
+            }
+
+            int percent = total > 0 ? (int)((double)processed / total * 100) : 0;
+            progressBar.Value = Math.Min(percent, 100);
+            lblProgress.Text = $"{processed} / {total} ({percent}%)";
+            lblStatus.Text = $"导入中 - 成功: {imported}，跳过: {skipped}，失败: {failed}";
+        }
+    }
+
+    /// <summary>
+    /// 文件夹信息
+    /// </summary>
+    public class FolderInfo
+    {
+        public Outlook.MAPIFolder Folder { get; set; }
+        public string DisplayPath { get; set; }
+
+        public override string ToString()
+        {
+            return DisplayPath ?? "未知文件夹";
         }
     }
 

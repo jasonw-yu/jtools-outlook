@@ -341,6 +341,25 @@ namespace jtools_outlook
 
         #endregion
 
+        #region 导入邮件功能
+
+        private void btnImportEmails_Click(object sender, RibbonControlEventArgs e)
+        {
+            try
+            {
+                using (var form = new ImportEmailsForm(Globals.ThisAddIn.Application))
+                {
+                    form.ShowDialog();
+                }
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show($"发生错误: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        #endregion
+
         #region 阻止功能
 
         private void btnBlockDomain_Click(object sender, RibbonControlEventArgs e)

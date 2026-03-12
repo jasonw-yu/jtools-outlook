@@ -42,6 +42,8 @@ namespace jtools_outlook
             this.groupAbout = this.Factory.CreateRibbonGroup();
             this.btnSaveAttachments = this.Factory.CreateRibbonButton();
             this.btnDownloadOnline = this.Factory.CreateRibbonButton();
+            this.separatorSync = this.Factory.CreateRibbonSeparator();
+            this.btnImportEmails = this.Factory.CreateRibbonButton();
             this.btnBlockDomain = this.Factory.CreateRibbonButton();
             this.btnReplyAllWithAttachments = this.Factory.CreateRibbonButton();
             this.btnAbout = this.Factory.CreateRibbonButton();
@@ -71,6 +73,8 @@ namespace jtools_outlook
             // groupSync
             //
             this.groupSync.Items.Add(this.btnDownloadOnline);
+            this.groupSync.Items.Add(this.separatorSync);
+            this.groupSync.Items.Add(this.btnImportEmails);
             this.groupSync.Label = "数据同步";
             this.groupSync.Name = "groupSync";
             //
@@ -111,6 +115,20 @@ namespace jtools_outlook
             this.btnDownloadOnline.ShowImage = true;
             this.btnDownloadOnline.SuperTip = "选择联机存档数据文件和本地PST文件，分析差异后同步邮件";
             this.btnDownloadOnline.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnDownloadOnline_Click);
+            //
+            // separatorSync
+            //
+            this.separatorSync.Name = "separatorSync";
+            //
+            // btnImportEmails
+            //
+            this.btnImportEmails.Label = "导入邮件";
+            this.btnImportEmails.Name = "btnImportEmails";
+            this.btnImportEmails.OfficeImageId = "Import";
+            this.btnImportEmails.ScreenTip = "导入本地邮件到PST";
+            this.btnImportEmails.ShowImage = true;
+            this.btnImportEmails.SuperTip = "将本地文件夹中的msg邮件导入到指定的PST文件夹";
+            this.btnImportEmails.Click += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.btnImportEmails_Click);
             //
             // btnBlockDomain
             //
@@ -174,6 +192,8 @@ namespace jtools_outlook
         internal Microsoft.Office.Tools.Ribbon.RibbonGroup groupAbout;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnSaveAttachments;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnDownloadOnline;
+        internal Microsoft.Office.Tools.Ribbon.RibbonSeparator separatorSync;
+        internal Microsoft.Office.Tools.Ribbon.RibbonButton btnImportEmails;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnBlockDomain;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnReplyAllWithAttachments;
         internal Microsoft.Office.Tools.Ribbon.RibbonButton btnAbout;
